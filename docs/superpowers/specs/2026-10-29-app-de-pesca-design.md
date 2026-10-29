@@ -37,8 +37,8 @@ Chat, notificaciones push, cuentas y contraseñas, tablas de marea más allá de
 
 ### 2.2 Pronóstico (pestaña principal)
 - Selector de día dentro del rango del viaje y selector **Costa / Embarcado**.
-- **Arriba:** las mejores ventanas del día, cada una con horario, puntaje y motivo. Ejemplo: `12:30–14:45 · 8/10 · fin de creciente + repunte, viento 12 km/h SO`.
-- **Gráfico por hora:** barras de puntaje de 0 a 10, curva de marea con pleamares y bajamares marcadas (hora y altura), franjas de noche en gris y marcas de las capturas registradas.
+- **Arriba (respuesta directa, elegido por el usuario el 29/10):** en grande "Anzuelos al agua HH:MM", "hasta las HH:MM" y cuánto falta ("en 2 h 15 min"; "ahora" si ya empezó). Debajo: puntaje, viento, el motivo ("Por qué: …"), la ventana siguiente y el puntaje de ahora. Ejemplo de ventana: `12:30–14:45 · 8/10 · fin de creciente + repunte, viento 12 km/h SO`.
+- **"Ver hora por hora" (desplegable):** curva de marea del día con pleamares y bajamares marcadas (hora y altura), las ventanas pintadas en verde sobre la curva, franjas de noche en gris, barras de puntaje de 0 a 10 por hora y marcas de las capturas registradas.
 - **Datos por hora:** viento, ráfagas y dirección, probabilidad de lluvia, temperatura, presión y, en embarcado, altura de ola. Temperatura del mar del día.
 - **Viento por modelo (estilo Windguru):** una tabla compacta con el viento de ECMWF, GFS e ICON hora por hora.
   - ICON solo llega a unos 7 días (§3.1); más allá se muestran los modelos que haya.
