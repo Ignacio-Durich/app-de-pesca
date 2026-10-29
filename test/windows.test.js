@@ -43,6 +43,35 @@ describe('findWindows', () => {
     expect(findWindows(mk([9, 9, 9], { night: true }), { nightFishing: true })).toHaveLength(1)
   })
 
+  it('noGo slots are never in a window, nor in the weak-day fallback', () => {
+    const s = mk([8, 9, 8, 4], { from: '17:30' })
+    s[1].noGo = true
+    const w = findWindows(s, { nightFishing: false, mode: 'embarcado' })
+    expect(w.map((x) => [x.start.slice(11), x.end.slice(11)])).toEqual([
+      ['17:30', '18:00'],
+      ['18:30', '19:00'],
+    ])
+    expect(w.every((x) => x.score === 8)).toBe(true)
+    const weak = mk([5, 6, 4])
+    weak[1].noGo = true
+    expect(findWindows(weak, { nightFishing: false, mode: 'embarcado' })).toEqual([
+      expect.objectContaining({ start: '2026-11-07T10:00', score: 5, weak: true }),
+    ])
+    const allNoGo = mk([9, 9]).map((x) => ({ ...x, noGo: true }))
+    expect(findWindows(allNoGo, { nightFishing: false, mode: 'embarcado' })).toEqual([])
+  })
+
+  it('fixtures 7/11 embarcado: the noGo 18:30 slot (score 7) is in no window', () => {
+    const f = normalize(marine, weather, '2026-10-29T12:00:00Z')
+    const slots = scoreDay(f, findExtremes(f.hours), '2026-11-07', 'embarcado', { nightFishing: false })
+    const bad = slots.find((s) => s.t === '2026-11-07T18:30')
+    expect(bad.noGo).toBe(true)
+    expect(bad.score).toBeGreaterThanOrEqual(7)
+    const m = parseLocal(bad.t)
+    for (const x of findWindows(slots, { nightFishing: false, mode: 'embarcado' }))
+      expect(m >= parseLocal(x.start) && m < parseLocal(x.end)).toBe(false)
+  })
+
   it('keeps the top 3 by score, ties → earlier', () => {
     const w = findWindows(mk([8, 4, 7, 4, 9, 4, 7, 4, 8]), { nightFishing: false })
     expect(w.map((x) => [x.start.slice(11), x.score])).toEqual([

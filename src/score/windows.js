@@ -41,7 +41,8 @@ function runs(slots, ok) {
 }
 
 export function findWindows(slots, { nightFishing, mode = 'costa' }) {
-  const eligible = (s) => s.score != null && (nightFishing || !s.night)
+  // noGo: "No conviene salir" (spec §2.2) nunca se recomienda como ventana
+  const eligible = (s) => s.score != null && !s.noGo && (nightFishing || !s.night)
   let found = runs(slots, (s) => eligible(s) && s.score >= WINDOW_MIN)
   let weak = false
   if (!found.length) {
