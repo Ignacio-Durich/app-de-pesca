@@ -10,7 +10,8 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "preact": "^11.1.0"
+    "preact": "^11.1.0",
+    "suncalc": "^2.1.1"
   },
   "devDependencies": {
     "@preact/preset-vite": "^2.10.6",
