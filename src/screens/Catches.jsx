@@ -1,6 +1,8 @@
 // Capturas (spec §2.6). Las condiciones salen del pronóstico guardado, así que todo anda sin señal.
-import { useMemo, useState } from 'preact/hooks'
+import { useEffect, useMemo, useState } from 'preact/hooks'
 import { saveRow, deleteRow } from '../lib/repo.js'
+import { pending, onQueueChange } from '../lib/queue.js'
+import { withTimeout } from '../lib/timeout.js'
 import { useRows } from '../lib/useRows.js'
 import { makeClient } from '../lib/db.js'
 import { toInstant, fromInstant } from '../lib/time.js'
@@ -9,23 +11,26 @@ import { findExtremes } from '../forecast/tides.js'
 import { dayLabel, dec } from '../forecast/view.js'
 import { cardinal } from '../score/windows.js'
 import { conditionsAt } from '../catches/conditions.js'
-import { resizePhoto } from '../catches/photo.js'
+import { resizePhoto, queuedPhotos } from '../catches/photo.js'
 import species from '../data/species.json'
 
 const T = 'catches'
 const PHASES = ['creciente', 'pleamar', 'bajante', 'bajamar']
 const GPS_TIMEOUT_MS = 8000 // [diseño] espera corta: sin GPS la captura se guarda igual (spec §5)
 const GPS_MAX_AGE_MS = 60000 // [diseño] sirve una posición de hasta 1 min
+// [diseño] margen extra: el timeout del GPS no corre mientras el cartel de permiso espera respuesta.
+const GPS_GRACE_MS = 2000
 
 const nowTrip = () => fromInstant(new Date().toISOString())
-// Nunca rechaza: sin permiso, sin GPS o sin respuesta a tiempo da null.
+// Nunca rechaza: sin permiso, sin GPS o sin respuesta a tiempo da null. El tope propio cubre el
+// cartel de permiso sin contestar (ahí el timeout de getCurrentPosition todavía no corre).
 const position = () =>
-  new Promise((ok) => {
+  withTimeout(new Promise((ok) => {
     if (!navigator.geolocation) return ok(null)
     navigator.geolocation.getCurrentPosition((p) => ok(p.coords), () => ok(null), {
       enableHighAccuracy: true, timeout: GPS_TIMEOUT_MS, maximumAge: GPS_MAX_AGE_MS,
     })
-  })
+  }), GPS_TIMEOUT_MS + GPS_GRACE_MS).catch(() => null)
 const num = (v, d) => dec(Number(v), d)
 
 export function Catches({ trip, me, tripId }) {
@@ -41,6 +46,20 @@ export function Catches({ trip, me, tripId }) {
   const [edited, setEdited] = useState(false)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState(null)
+  const [ops, setOps] = useState([])
+
+  // Fotos sin subir: se muestran desde el Blob local (object URL), que se libera al cambiar la cola.
+  useEffect(() => {
+    const load = () => pending().then(setOps, () => {})
+    load()
+    return onQueueChange(load)
+  }, [])
+  const localUrls = useMemo(
+    () => new Map([...queuedPhotos(ops)].map(([path, blob]) => [path, URL.createObjectURL(blob)])),
+    [ops],
+  )
+  useEffect(() => () => localUrls.forEach((u) => URL.revokeObjectURL(u)), [localUrls])
+  const photoSrc = (path) => localUrls.get(path) ?? client.storage.from('catch-photos').getPublicUrl(path).data.publicUrl
 
   const editWhen = (k) => (e) => (setWhen({ ...when, [k]: e.currentTarget.value }), setEdited(true))
 
@@ -145,7 +164,7 @@ export function Catches({ trip, me, tripId }) {
           ].filter(Boolean).join(' · ')
           return (
             <li key={r.id} class="item">
-              {r.photo_path && <Thumb url={client.storage.from('catch-photos').getPublicUrl(r.photo_path).data.publicUrl} />}
+              {r.photo_path && <Thumb key={photoSrc(r.photo_path)} url={photoSrc(r.photo_path)} />}
               <div class="grow">
                 <strong>{r.species}</strong>
                 {r.length_cm != null && ` · ${String(r.length_cm).replace('.', ',')} cm`}
@@ -188,7 +207,7 @@ export function Catches({ trip, me, tripId }) {
   )
 }
 
-// Sin señal la foto no carga: no se muestra. Tocarla abre la foto completa.
+// Sin señal la foto no carga: no se muestra (key = src: con otro src se vuelve a intentar). Tocarla abre la foto completa.
 function Thumb({ url }) {
   const [ok, setOk] = useState(true)
   if (!ok) return null

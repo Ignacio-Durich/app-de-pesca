@@ -14,3 +14,7 @@ export async function resizePhoto(blob, maxSide = MAX_SIDE, quality = QUALITY) {
     canvas.toBlob((b) => (b ? ok(b) : fail(new Error('No se pudo convertir la foto'))), 'image/jpeg', quality),
   )
 }
+
+// Fotos que todavía están en la cola (sin subir): path → Blob. La lista las muestra desde el
+// teléfono hasta que suben; recién ahí existe la URL pública.
+export const queuedPhotos = (ops) => new Map(ops.filter((o) => o.photo).map((o) => [o.photo.path, o.photo.blob]))
