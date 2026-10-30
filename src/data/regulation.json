@@ -1,0 +1,59 @@
+{
+  "note": "El reglamento puede cambiar. Antes de salir, mirá la versión vigente en la página oficial.",
+  "seasonNote": {
+    "text": "Temporada según la tesis: la actividad se concentra en primavera y verano, con pico en diciembre y enero. Las salidas embarcadas van de octubre a abril, con más viajes en noviembre y diciembre. Es la temporada general de la pesca deportiva en la bahía, no una veda ni un dato por especie.",
+    "sources": [
+      {
+        "title": "Llompart 2011, tesis doctoral UNLP (especies de la pesca deportiva en Bahía San Blas)",
+        "url": "https://sedici.unlp.edu.ar/handle/10915/34280"
+      }
+    ]
+  },
+  "rules": [
+    {
+      "text": "Dos cañas por persona (embarcado y de costa); se pueden llevar cañas de repuesto. Se prohíben los anzuelos triples (robadores), salvo en señuelos artificiales (un solo triple por señuelo, sin pilas ni baterías) y en los casos que el reglamento indica.",
+      "sources": [
+        {
+          "title": "Reglamento de pesca deportiva 2026 (PBA), pág. 10",
+          "url": "https://drive.google.com/file/d/1-6HWnpuQjw38iq0VY5R5mSJ5RnkCHgGk/view"
+        },
+        {
+          "title": "Pesca deportiva — gba.gob.ar",
+          "url": "https://www.gba.gob.ar/desarrollo_agrario/pesca/pesca_deportiva"
+        }
+      ]
+    },
+    {
+      "text": "Cupo combinado por día: P.V. + P.V.R. = 38 + 2; P.D. + P.V. = 10 + 40; P.D. pejerrey + P.V. = 50; P.D. + P.V. + P.V.R. = 10 + 38 + 2.",
+      "sources": [
+        {
+          "title": "Reglamento de pesca deportiva 2026 (PBA), pág. 11",
+          "url": "https://drive.google.com/file/d/1-6HWnpuQjw38iq0VY5R5mSJ5RnkCHgGk/view"
+        },
+        {
+          "title": "Pesca deportiva — gba.gob.ar",
+          "url": "https://www.gba.gob.ar/desarrollo_agrario/pesca/pesca_deportiva"
+        }
+      ]
+    }
+  ],
+  "license": {
+    "url": "https://maa.gba.gov.ar/sistemas/pesca/licencias/licencias00.php",
+    "notes": [
+      "Se tramita en línea (enlace de arriba) o en persona en la Dirección Provincial de Pesca, calle 51 esquina 12, Torre I, piso 5, La Plata.",
+      "Costo no publicado en la página oficial: la app no muestra un precio.",
+      "Tipos que pueden interesar a un visitante: Turística (20 días), De Concurso (3 días), No Federada (1 año).",
+      "Menores de 14 años: no se requiere licencia (pág. 3)."
+    ],
+    "sources": [
+      {
+        "title": "Pesca deportiva — gba.gob.ar",
+        "url": "https://www.gba.gob.ar/desarrollo_agrario/pesca/pesca_deportiva"
+      },
+      {
+        "title": "Reglamento de pesca deportiva 2026 (PBA), pág. 3",
+        "url": "https://drive.google.com/file/d/1-6HWnpuQjw38iq0VY5R5mSJ5RnkCHgGk/view"
+      }
+    ]
+  }
+}

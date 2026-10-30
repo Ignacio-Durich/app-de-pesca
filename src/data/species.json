@@ -1,1 +1,258 @@
-[]
+[
+  {
+    "id": "pescadilla",
+    "name": "Pescadilla de red",
+    "scientific": "Cynoscion guatucupa",
+    "category": "P.V.",
+    "waters": [
+      "mar"
+    ],
+    "season": null,
+    "bait": "Filete de pequeños peces sin descamar, camarón o langostino fresco, spinners, trozos de plástico blanco o papel plateado para la pesca \"al vuelo\".",
+    "minSizeCm": 30,
+    "dailyLimit": "40 por día (pesca variada)",
+    "release": null,
+    "notes": "El reglamento 2026 la nombra \"Pescadilla\"; la Disposición 217/07 (anexo 2) y la tesis, \"pescadilla de red\".",
+    "verified": true,
+    "sources": [
+      {
+        "title": "Reglamento de pesca deportiva 2026 (PBA), pág. 10–11 y 12",
+        "url": "https://drive.google.com/file/d/1-6HWnpuQjw38iq0VY5R5mSJ5RnkCHgGk/view"
+      },
+      {
+        "title": "Pesca deportiva — gba.gob.ar",
+        "url": "https://www.gba.gob.ar/desarrollo_agrario/pesca/pesca_deportiva"
+      },
+      {
+        "title": "Disposición 217/07 (normas.gba.gob.ar), anexo 2 y art. 9",
+        "url": "https://normas.gba.gob.ar/documentos/0nvkq6iM.html"
+      },
+      {
+        "title": "Llompart 2011, tesis doctoral UNLP (especies de la pesca deportiva en Bahía San Blas)",
+        "url": "https://sedici.unlp.edu.ar/handle/10915/34280"
+      }
+    ]
+  },
+  {
+    "id": "corvina-rubia",
+    "name": "Corvina rubia",
+    "scientific": "Micropogonias furnieri",
+    "category": "P.V.",
+    "waters": [
+      "mar"
+    ],
+    "season": null,
+    "bait": "Camarón, langostino, almeja, cangrejo colorado y blanco, anchoíta, saraca, magrú, calamar, calamarete, lombriz de mar.",
+    "minSizeCm": 35,
+    "dailyLimit": "40 por día (pesca variada)",
+    "release": null,
+    "notes": null,
+    "verified": true,
+    "sources": [
+      {
+        "title": "Reglamento de pesca deportiva 2026 (PBA), pág. 10–11 y 12",
+        "url": "https://drive.google.com/file/d/1-6HWnpuQjw38iq0VY5R5mSJ5RnkCHgGk/view"
+      },
+      {
+        "title": "Pesca deportiva — gba.gob.ar",
+        "url": "https://www.gba.gob.ar/desarrollo_agrario/pesca/pesca_deportiva"
+      },
+      {
+        "title": "Disposición 217/07 (normas.gba.gob.ar), anexo 2 y art. 9",
+        "url": "https://normas.gba.gob.ar/documentos/0nvkq6iM.html"
+      },
+      {
+        "title": "Llompart 2011, tesis doctoral UNLP (especies de la pesca deportiva en Bahía San Blas)",
+        "url": "https://sedici.unlp.edu.ar/handle/10915/34280"
+      }
+    ]
+  },
+  {
+    "id": "pejerrey",
+    "name": "Pejerrey",
+    "scientific": "Odontesthes sp.",
+    "category": "P.D. (pejerrey)",
+    "waters": [
+      "mar"
+    ],
+    "season": null,
+    "bait": "Camarón, langostino, filete de pejerrey, cornalitos, tripa de ave, lombriz de mar, tiritas de magrú salado y panceta.",
+    "minSizeCm": null,
+    "dailyLimit": "40 por día (pesca dirigida de pejerrey)",
+    "release": null,
+    "notes": null,
+    "verified": true,
+    "sources": [
+      {
+        "title": "Reglamento de pesca deportiva 2026 (PBA), pág. 10–11 y 12",
+        "url": "https://drive.google.com/file/d/1-6HWnpuQjw38iq0VY5R5mSJ5RnkCHgGk/view"
+      },
+      {
+        "title": "Pesca deportiva — gba.gob.ar",
+        "url": "https://www.gba.gob.ar/desarrollo_agrario/pesca/pesca_deportiva"
+      },
+      {
+        "title": "Llompart 2011, tesis doctoral UNLP (especies de la pesca deportiva en Bahía San Blas)",
+        "url": "https://sedici.unlp.edu.ar/handle/10915/34280"
+      }
+    ]
+  },
+  {
+    "id": "lenguado",
+    "name": "Lenguado",
+    "scientific": "Xystreurys sp. y Paralichthys sp.",
+    "category": "P.D.",
+    "waters": [
+      "mar"
+    ],
+    "season": null,
+    "bait": null,
+    "minSizeCm": null,
+    "dailyLimit": "10 por día (pesca dirigida)",
+    "release": null,
+    "notes": "Para el lenguado se permite 1 anzuelo triple por línea de pesca (pág. 11).",
+    "verified": true,
+    "sources": [
+      {
+        "title": "Reglamento de pesca deportiva 2026 (PBA), pág. 10–11",
+        "url": "https://drive.google.com/file/d/1-6HWnpuQjw38iq0VY5R5mSJ5RnkCHgGk/view"
+      },
+      {
+        "title": "Pesca deportiva — gba.gob.ar",
+        "url": "https://www.gba.gob.ar/desarrollo_agrario/pesca/pesca_deportiva"
+      },
+      {
+        "title": "Llompart 2011, tesis doctoral UNLP (especies de la pesca deportiva en Bahía San Blas)",
+        "url": "https://sedici.unlp.edu.ar/handle/10915/34280"
+      }
+    ]
+  },
+  {
+    "id": "gatuzo",
+    "name": "Gatuzo",
+    "scientific": "Mustelus schmitti",
+    "category": "P.V.",
+    "waters": [
+      "mar"
+    ],
+    "season": null,
+    "bait": null,
+    "minSizeCm": 60,
+    "dailyLimit": "40 por día (pesca variada)",
+    "release": null,
+    "notes": null,
+    "verified": true,
+    "sources": [
+      {
+        "title": "Reglamento de pesca deportiva 2026 (PBA), pág. 10–11",
+        "url": "https://drive.google.com/file/d/1-6HWnpuQjw38iq0VY5R5mSJ5RnkCHgGk/view"
+      },
+      {
+        "title": "Pesca deportiva — gba.gob.ar",
+        "url": "https://www.gba.gob.ar/desarrollo_agrario/pesca/pesca_deportiva"
+      },
+      {
+        "title": "Disposición 217/07 (normas.gba.gob.ar), anexo 2 y art. 9",
+        "url": "https://normas.gba.gob.ar/documentos/0nvkq6iM.html"
+      },
+      {
+        "title": "Llompart 2011, tesis doctoral UNLP (especies de la pesca deportiva en Bahía San Blas)",
+        "url": "https://sedici.unlp.edu.ar/handle/10915/34280"
+      }
+    ]
+  },
+  {
+    "id": "rayas",
+    "name": "Rayas",
+    "scientific": null,
+    "category": "P.V.R.",
+    "waters": [
+      "mar"
+    ],
+    "season": null,
+    "bait": "Moluscos, cangrejos, lombriz de mar, anchoíta, saraca, magrú, langostino, camarón.",
+    "minSizeCm": null,
+    "dailyLimit": "2 por día (pesca variada con reserva)",
+    "release": "Hasta 2 por día; el resto se devuelve.",
+    "notes": "El reglamento dice \"rayas en general\" y nombra aparte a los chuchos (Myliobatis sp.), también P.V.R.",
+    "verified": true,
+    "sources": [
+      {
+        "title": "Reglamento de pesca deportiva 2026 (PBA), pág. 10–11 y 13",
+        "url": "https://drive.google.com/file/d/1-6HWnpuQjw38iq0VY5R5mSJ5RnkCHgGk/view"
+      },
+      {
+        "title": "Pesca deportiva — gba.gob.ar",
+        "url": "https://www.gba.gob.ar/desarrollo_agrario/pesca/pesca_deportiva"
+      },
+      {
+        "title": "Disposición 217/07 (normas.gba.gob.ar), art. 10",
+        "url": "https://normas.gba.gob.ar/documentos/0nvkq6iM.html"
+      },
+      {
+        "title": "Llompart 2011, tesis doctoral UNLP (especies de la pesca deportiva en Bahía San Blas)",
+        "url": "https://sedici.unlp.edu.ar/handle/10915/34280"
+      }
+    ]
+  },
+  {
+    "id": "cazon",
+    "name": "Cazón",
+    "scientific": "Galeorhinus galeus",
+    "category": "P.D.R.",
+    "waters": [
+      "mar"
+    ],
+    "season": null,
+    "bait": null,
+    "minSizeCm": null,
+    "dailyLimit": "Devolución obligatoria (pesca dirigida con reserva)",
+    "release": "Devolución obligatoria. 1 caña por pescador en pesca embarcada y 2 por pescador de costa, con aparejos de 1 solo anzuelo. Anzuelo curvo tipo Mustad 39960 BL o de fácil degradación tipo Mustad 3406, en medida 12/0 o 14/0, con la lanceta medianamente rebajada. Nylon de la mayor resistencia posible (0,70 mm de grosor mínimo). Se recomienda una boya tope a 25 cm del anzuelo en las líneas de fondo.",
+    "notes": null,
+    "verified": true,
+    "sources": [
+      {
+        "title": "Reglamento de pesca deportiva 2026 (PBA), pág. 10–11",
+        "url": "https://drive.google.com/file/d/1-6HWnpuQjw38iq0VY5R5mSJ5RnkCHgGk/view"
+      },
+      {
+        "title": "Pesca deportiva — gba.gob.ar",
+        "url": "https://www.gba.gob.ar/desarrollo_agrario/pesca/pesca_deportiva"
+      },
+      {
+        "title": "Disposición 217/07 (normas.gba.gob.ar), art. 6 y 14",
+        "url": "https://normas.gba.gob.ar/documentos/0nvkq6iM.html"
+      }
+    ]
+  },
+  {
+    "id": "pez-elefante",
+    "name": "Pez elefante (o gallo)",
+    "scientific": "Callorhynchus callorhynchus",
+    "category": "P.V.R.",
+    "waters": [
+      "mar"
+    ],
+    "season": null,
+    "bait": "Lombriz de mar, anchoíta, langostino, camarón.",
+    "minSizeCm": null,
+    "dailyLimit": "2 por día (pesca variada con reserva)",
+    "release": "Hasta 2 por día; el resto se devuelve.",
+    "notes": null,
+    "verified": true,
+    "sources": [
+      {
+        "title": "Reglamento de pesca deportiva 2026 (PBA), pág. 10–11 y 12",
+        "url": "https://drive.google.com/file/d/1-6HWnpuQjw38iq0VY5R5mSJ5RnkCHgGk/view"
+      },
+      {
+        "title": "Pesca deportiva — gba.gob.ar",
+        "url": "https://www.gba.gob.ar/desarrollo_agrario/pesca/pesca_deportiva"
+      },
+      {
+        "title": "Disposición 217/07 (normas.gba.gob.ar), art. 10",
+        "url": "https://normas.gba.gob.ar/documentos/0nvkq6iM.html"
+      }
+    ]
+  }
+]

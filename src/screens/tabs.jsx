@@ -6,13 +6,7 @@ import { Emergency } from './Emergency.jsx'
 import { Catches } from './Catches.jsx'
 import { Prepare } from './Prepare.jsx'
 import { MapScreen } from './Map.jsx'
-
-const Placeholder = (title) => () => (
-  <section class="card">
-    <h2>{title}</h2>
-    <p class="muted">Próximamente.</p>
-  </section>
-)
+import { Species } from './Species.jsx'
 
 function Mas({ tripId }) {
   const link = `${location.origin}/t/${tripId}`
@@ -40,7 +34,7 @@ export const tabScreens = {
   mas: Mas,
   checklist: Checklist,
   itinerario: Itinerary,
-  especies: Placeholder('Especies'),
+  especies: Species,
   emergencias: Emergency,
   preparar: Prepare,
 }
