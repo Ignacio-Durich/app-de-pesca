@@ -83,8 +83,19 @@ export function flush(getClient) {
   })().finally(() => (inflight = null)))
 }
 
+let flushClient = null
+
+// Tras una escritura local: sube ya (sin esperar los 60 s) si hay señal. Sin esperar el resultado.
+// Si hay un flush en curso, otro detrás: el que corre ya tomó su lista antes de esta escritura.
+export function requestFlush() {
+  if (!flushClient || navigator.onLine === false) return
+  const go = () => flush(flushClient).catch(() => {})
+  inflight ? inflight.then(go, go) : go()
+}
+
 // Al abrir, al volver la conexión y cada 60 s. getClient(tripId) puede devolver null (op se saltea).
 export function startAutoFlush(getClient) {
+  flushClient = getClient
   const go = () => flush(getClient).catch(() => {})
   go()
   if (typeof window === 'undefined') return () => {}

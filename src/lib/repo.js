@@ -1,5 +1,5 @@
 import { localGet, localSet, makeLock } from './local.js'
-import { enqueue, pending } from './queue.js'
+import { enqueue, pending, requestFlush } from './queue.js'
 
 const lock = makeLock()
 const key = (table, scope) => `rows:${table}:${scope}`
@@ -20,6 +20,7 @@ export async function saveRow(table, scope, row, photo) {
     const rows = await read(table, scope)
     await localSet(key(table, scope), [...rows.filter((r) => r.id !== row.id), row])
   })
+  requestFlush()
 }
 
 export async function deleteRow(table, scope, id) {
@@ -27,6 +28,7 @@ export async function deleteRow(table, scope, id) {
   await lock(async () => {
     await localSet(key(table, scope), (await read(table, scope)).filter((r) => r.id !== id))
   })
+  requestFlush()
 }
 
 // Trae lo del servidor y reemplaza lo local, salvo filas con op pendiente (gana lo local).

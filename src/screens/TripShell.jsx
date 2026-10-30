@@ -2,8 +2,40 @@ import { useEffect, useState } from 'preact/hooks'
 import { Link } from '../nav.jsx'
 import { listRows } from '../lib/repo.js'
 import { loadTrip, getMe, setMe } from '../trips/trips.js'
+import { pending, onQueueChange } from '../lib/queue.js'
 import { WhoAreYou } from './WhoAreYou.jsx'
 import { tabScreens, TABS, MAS_ITEMS } from './tabs.jsx'
+
+const TABLE_LABEL = {
+  checklist_items: 'Checklist', itinerary_items: 'Itinerario', trips: 'Viaje', catches: 'Captura', spots: 'Punto', soundings: 'Sondeo',
+}
+const describe = (op) => {
+  const what = op.row?.text ?? op.row?.title ?? op.row?.name ?? ''
+  return `${TABLE_LABEL[op.table] ?? op.table}: ${op.kind === 'delete' ? 'borrar' : 'guardar'}${what ? ` “${what}”` : ''}`
+}
+
+// "N pendientes" (spec §3.4): cambios que todavía no se subieron. Oculto en 0; al tocarlo lista cuáles.
+function Pending() {
+  const [ops, setOps] = useState([])
+  const [open, setOpen] = useState(false)
+  useEffect(() => {
+    const load = () => pending().then(setOps)
+    load()
+    return onQueueChange(load)
+  }, [])
+  if (!ops.length) return null
+  return (
+    <>
+      <button class="pending-btn" aria-expanded={open} onClick={() => setOpen(!open)}>{ops.length} pendientes</button>
+      {open && (
+        <div class="pending-panel">
+          <strong>Falta subir (se sube solo con señal)</strong>
+          <ul>{ops.map((o) => <li key={o.id}>{describe(o)}</li>)}</ul>
+        </div>
+      )}
+    </>
+  )
+}
 
 export function TripShell({ id, tab = 'pronostico' }) {
   const [res, setRes] = useState(null)
@@ -62,6 +94,7 @@ export function TripShell({ id, tab = 'pronostico' }) {
           <strong class="trip-name">{trip.name}</strong>
           <button class="link" onClick={() => setPicking(true)}>Soy {me}</button>
         </div>
+        <Pending />
         <Link class="btn sos" href={`/t/${id}/emergencias`} aria-label="Emergencias">SOS</Link>
       </header>
       <main class="page">

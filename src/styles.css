@@ -102,13 +102,14 @@ input:not([type='checkbox']) {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  flex-wrap: wrap;
   gap: 12px;
   padding: 8px 16px;
   padding-top: calc(8px + env(safe-area-inset-top));
   background: var(--card);
   border-bottom: 1px solid var(--line);
 }
-.topbar-info { display: flex; flex-direction: column; min-width: 0; }
+.topbar-info { display: flex; flex-direction: column; min-width: 0; margin-right: auto; }
 .trip-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .link {
   align-self: flex-start;
@@ -181,3 +182,29 @@ details summary { min-height: 44px; display: flex; align-items: center; font-wei
 .mt tr.unc td { color: var(--amber); }
 .day-info { padding-left: 18px; margin: 8px 0 0; }
 .data-age { margin-top: 12px; font-size: .85rem; }
+select {
+  min-height: 44px;
+  padding: 8px 12px;
+  font: inherit;
+  color: var(--text);
+  background: var(--field);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  width: 100%;
+}
+.list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 8px 8px 12px;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+}
+.item .check { flex: 1; min-width: 0; }
+.item.done .grow { text-decoration: line-through; color: var(--muted); }
+.grow { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.pending-btn { min-height: 44px; padding: 0 12px; font: inherit; font-weight: 600; color: var(--amber); background: none; border: 1px solid var(--amber); border-radius: 22px; cursor: pointer; }
+.pending-panel { order: 9; flex: 1 0 100%; padding: 4px 0 8px; }
+.pending-panel ul { margin: 8px 0 0; padding-left: 18px; }
