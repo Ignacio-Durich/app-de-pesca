@@ -1,32 +1,12 @@
-import { useEffect, useState } from 'preact/hooks'
+import { usePath } from './nav.jsx'
+import { Home } from './screens/Home.jsx'
+import { TripShell } from './screens/TripShell.jsx'
 
-const listeners = new Set()
-
-export function navigate(path) {
-  history.pushState(null, '', path)
-  listeners.forEach((fn) => fn())
-}
-
-function Home() {
-  return <h1>App de Pesca</h1>
-}
-
-function Trip({ id }) {
-  return <h1>Viaje {id}</h1>
-}
+export { navigate } from './nav.jsx'
 
 export function App() {
-  const [path, setPath] = useState(location.pathname)
-  useEffect(() => {
-    const sync = () => setPath(location.pathname)
-    listeners.add(sync)
-    addEventListener('popstate', sync)
-    return () => {
-      listeners.delete(sync)
-      removeEventListener('popstate', sync)
-    }
-  }, [])
-
-  const trip = path.match(/^\/t\/([^/]+)\/?$/)
-  return trip ? <Trip id={decodeURIComponent(trip[1])} /> : <Home />
+  const path = usePath()
+  // /t/<id> (link para compartir) o /t/<id>/<pantalla>
+  const m = path.match(/^\/t\/([^/]+)(?:\/([^/]+))?\/?$/)
+  return m ? <TripShell key={m[1]} id={decodeURIComponent(m[1])} tab={m[2]} /> : <Home />
 }
