@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <rect width="512" height="512" fill="#0b5c7a"/>
+  <path d="M0 400 Q64 372 128 400 T256 400 T384 400 T512 400 V512 H0Z" fill="#0a4d66"/>
+  <!-- caña -->
+  <path d="M112 392 Q236 250 392 112" fill="none" stroke="#fff" stroke-width="16" stroke-linecap="round"/>
+  <path d="M112 392 L158 340" stroke="#f2b134" stroke-width="28" stroke-linecap="round"/>
+  <circle cx="176" cy="342" r="26" fill="#fff"/>
+  <circle cx="176" cy="342" r="9" fill="#0b5c7a"/>
+  <!-- línea y anzuelo -->
+  <path d="M392 112 V318" stroke="#fff" stroke-width="5"/>
+  <circle cx="392" cy="262" r="15" fill="#f2b134"/>
+  <path d="M392 318 V350 a20 20 0 0 1 -40 0 l12 -10" fill="none" stroke="#fff" stroke-width="9" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>
