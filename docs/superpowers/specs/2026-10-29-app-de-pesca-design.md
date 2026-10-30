@@ -86,7 +86,12 @@ Chat, notificaciones push, cuentas y contraseñas, tablas de marea más allá de
   - **Pesca variada con reserva** (rayas, chuchos, pez ángel, **pez elefante**, corvina negra): se pueden sacrificar hasta 2 ejemplares; el resto se devuelve.
   - **Tallas mínimas (anexo 2):** corvina rubia, 35 cm; pescadilla de red, 30 cm.
   - **Cupos:** pesca variada, 40 piezas por pescador y día (art. 9); pesca dirigida, 10 por día, salvo pejerrey con 40 (art. 11); combinada, hasta 50 en 24 h (art. 17).
-  - **Vigencia:** la página oficial de pesca de la provincia hoy enlaza un "reglamento-pesca-deportiva-2026.pdf". Antes de cargar `species.json` se lee ese PDF y se confirma que mantiene estos valores (tarea del plan).
+  - **Vigencia (confirmado el 30/10 con el reglamento 2026, pág. 10–11):** mantiene la Disposición 217/07 y estos valores: corvina rubia 35 cm, pescadilla 30 cm; pesca variada 40 por día, pesca variada con reserva 2, pesca dirigida 10, pejerrey 40; grandes tiburones costeros (incluido el cazón) con devolución obligatoria.
+    - **Más detalle que la spec:** la pesca combinada es una tabla, no un tope único de 50. Por ejemplo, P.V. + P.V.R. = 38 + 2, P.D. + P.V. = 10 + 40 y P.D. pejerrey + P.V. = 50.
+    - **Para el día de cazón (P.D.R.):** anzuelo curvo tipo Mustad 39960 BL, o de fácil degradación tipo Mustad 3406, en 12/0 o 14/0. Nylon de 0,70 mm como mínimo. Se recomienda una boya tope a 25 cm del anzuelo en las líneas de fondo.
+    - **Otras tallas de la tabla:** pez ángel 75 cm, gatuzo 60 cm, pez palo 46 cm, lisa 45 cm, salmón de mar 37 cm, besugo 26 cm.
+    - **Licencia:** hay una licencia "Turística" de 20 días (pág. 3).
+    - **Pez elefante:** la tabla de carnadas dice "Pez elefante o gallo" (pág. 12), así que el reglamento usa los dos nombres.
 - **Licencia de pesca deportiva de Buenos Aires** (página oficial gba.gob.ar):
   - se tramita en línea en `maa.gba.gov.ar/sistemas/pesca/licencias/licencias00.php`, o en la Dirección Provincial de Pesca (calle 51 esquina 12, Torre I, piso 5, La Plata);
   - hay licencia especial para jubilados y equivalentes (Resolución 46/05);
@@ -403,7 +408,7 @@ Tráfico de buques de la Hidrovía y cartas fluviales oficiales.
 | Prefectura 106 y canal 16 (156,800 MHz) | [argentina.gob.ar, emergencias](https://www.argentina.gob.ar/tema/emergencias), [PNA](https://www.argentina.gob.ar/node/235064) | ✓ |
 | Especies y temporada de San Blas | [Tesis UNLP, Llompart 2011](https://sedici.unlp.edu.ar/handle/10915/34280); cazón: [Río Negro](https://www.rionegro.com.ar/voy-turismo/bahia-san-blas-tiempo-de-descuento-el-plan-para-marzo-y-semana-santa-hay-mas-que-pesca-2767201/?amp=1) | ✓ académica · ⚠ cazón de noche solo por prensa |
 | Disposición 217/07: cazón con devolución obligatoria, tallas y cupos | [Texto oficial, normas.gba.gob.ar](https://normas.gba.gob.ar/documentos/0nvkq6iM.html) | ✓ texto · ⚠ vigencia: se confirma con el reglamento 2026 |
-| Reglamento de pesca deportiva 2026 de BA | [gba.gob.ar, pesca deportiva](https://www.gba.gob.ar/desarrollo_agrario/pesca/pesca_deportiva) (PDF en Drive) | ⚠ existe; hay que descargarlo para leerlo |
+| Reglamento de pesca deportiva 2026 de BA | [gba.gob.ar, pesca deportiva](https://www.gba.gob.ar/desarrollo_agrario/pesca/pesca_deportiva) ([PDF en Drive](https://drive.google.com/file/d/1-6HWnpuQjw38iq0VY5R5mSJ5RnkCHgGk/view), 26 págs., creado 4/2/2026) | ✓ leído el 30/10: ambientes marinos según Disp. 217/07, mismos valores (ver nota abajo) |
 | Licencia de BA: trámite en línea o presencial; costo no publicado | [gba.gob.ar, pesca deportiva](https://www.gba.gob.ar/desarrollo_agrario/pesca/pesca_deportiva) | ✓ |
 | Veda de pejerrey en aguas interiores de BA | [gba.gob.ar, disposiciones](https://www.gba.gob.ar/desarrollo_agrario/pesca/legislacion/provincial/disposiciones) | ✓ · ⚠ alcance en el Paraná sin confirmar |
 | API del INA: estaciones, series y pronóstico | Pedidos reales a la API | ✓ pronóstico solo en Zárate, ~3 días |
@@ -412,5 +417,5 @@ Tráfico de buques de la Hidrovía y cartas fluviales oficiales.
 | Sudestada eleva el agua del Río de la Plata | [Wikipedia](https://en.wikipedia.org/wiki/Sudestada), notas de prensa | ⚠ sin regla aplicable al Delta → se sacó del diseño |
 | "Viento N/NO baja el agua en el Delta" | Sin fuente | ✗ se sacó del diseño |
 | "Dorado activo a más de 18 °C" | Sin fuente | ✗ se sacó del diseño |
-| "Pez gallo = pez elefante" | Sin fuente | ✗ se usa solo "pez elefante" (lo nombró Fernando) |
+| "Pez gallo = pez elefante" | Reglamento 2026 de BA, pág. 12: "Pez elefante o gallo" | ✓ desde el 30/10 (antes sin fuente) |
 | Estimación de 60–120 MB offline | Inventada | ✗ se sacó; se mide en la prueba |
