@@ -1,6 +1,6 @@
 import 'fake-indexeddb/auto'
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
-import { createTrip, loadTrip, getMe, setMe, recentTrips, LOAD_TIMEOUT_MS } from '../src/trips/trips.js'
+import { createTrip, loadTrip, getMe, setMe, recentTrips, LOAD_TIMEOUT_MS, tripIdFrom } from '../src/trips/trips.js'
 import { listRows, saveRow } from '../src/lib/repo.js'
 import { pending } from '../src/lib/queue.js'
 
@@ -70,5 +70,18 @@ describe('getMe / setMe', () => {
     setMe('b', 'Jero')
     expect(getMe('a')).toBe('Nacho')
     expect(getMe('b')).toBe('Jero')
+  })
+})
+
+describe('tripIdFrom (F1: pegar el link en la app instalada)', () => {
+  const ID = '00000000-0000-4000-8000-000000000000'
+  it('saca el id de un link, de un link con pantalla o texto alrededor, o del id solo', () => {
+    expect(tripIdFrom(`https://pesca.example/t/${ID}`)).toBe(ID)
+    expect(tripIdFrom(`Sumate al viaje: https://pesca.example/t/${ID}/mapa gracias`)).toBe(ID)
+    expect(tripIdFrom(`  ${ID.toUpperCase()} `)).toBe(ID)
+  })
+  it('sin id válido: null', () => {
+    expect(tripIdFrom('')).toBe(null)
+    expect(tripIdFrom('https://pesca.example/t/abc')).toBe(null)
   })
 })

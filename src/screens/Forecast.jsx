@@ -5,7 +5,7 @@ import { findExtremes } from '../forecast/tides.js'
 import { scoreDay, median } from '../score/score.js'
 import { findWindows } from '../score/windows.js'
 import { moonDay } from '../score/moon.js'
-import { NOGO_WIND_KMH, WAVE_NOGO_M } from '../score/config.js'
+import { NOGO_WIND_KMH, WAVE_NOGO_M, WINDOW_MIN } from '../score/config.js'
 import {
   tripDays, nowLocal, pickDay, dayLabel, countdown, slotNow, noGoRanges, tideReaches, phaseLabel, hhmm, dec, heroWindows,
 } from '../forecast/view.js'
@@ -174,7 +174,7 @@ function Hero({ windows: all, slots, isToday, nowIso }) {
         hasta las {hhmm(best.end)}
         {isToday && <strong> · {countdown(nowIso, best.start, best.end)}</strong>}
       </p>
-      <p><span class="score-chip">{best.score}/10</span> Por qué: {best.reason}</p>
+      <p><span class={best.score >= WINDOW_MIN ? 'score-chip' : 'score-chip weak'}>{best.score}/10</span> Por qué: {best.reason}</p>
       {rest.map((w) => (
         <p key={w.start} class="muted">
           {w.start > best.start ? 'Después' : 'Antes'}: {hhmm(w.start)}–{hhmm(w.end)} · {w.score}/10

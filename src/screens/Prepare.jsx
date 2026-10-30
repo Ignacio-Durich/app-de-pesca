@@ -135,20 +135,33 @@ const isIos = () => /iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.p
 const isInstalled = () => navigator.standalone === true || matchMedia('(display-mode: standalone)').matches
 const dismissed = () => { try { return localStorage.getItem(GUIDE_KEY) === '1' } catch { return false } }
 
-export function InstallGuide() {
+export function InstallGuide({ tripId }) {
   const [open, setOpen] = useState(() => isIos() && !isInstalled() && !dismissed())
+  const [copied, setCopied] = useState(null) // null | true | false (no se pudo: se muestra el link)
   if (!open) return null
+  const link = `${location.origin}/t/${tripId}`
   const close = () => {
     try { localStorage.setItem(GUIDE_KEY, '1') } catch { /* modo privado */ }
     setOpen(false)
   }
+  const copy = () => navigator.clipboard.writeText(link).then(() => setCopied(true), () => setCopied(false))
+  // La app instalada guarda aparte de Safari: el link y "Preparar viaje" se hacen adentro de la app.
   return (
     <div class="card">
       <h2>Instalá la app en el iPhone</h2>
-      <p>
-        En Safari tocá <strong>Compartir</strong> y después <strong>“Agregar a pantalla de inicio”</strong>.
-        Abrila siempre desde ese ícono: así el iPhone no borra el mapa ni los datos guardados.
-      </p>
+      <p>La app instalada no ve lo que hiciste en Safari. Seguí estos pasos:</p>
+      <ol>
+        <li>
+          Copiá el link del viaje:{' '}
+          <button class="btn fit" onClick={copy}>{copied ? 'Copiado ✓' : 'Copiar link'}</button>
+          {copied === false && <input class="mt" readOnly value={link} onFocus={(e) => e.currentTarget.select()} />}
+        </li>
+        <li>En Safari tocá <strong>Compartir</strong> y después <strong>“Agregar a pantalla de inicio”</strong>.</li>
+        <li>Abrí la app desde el ícono nuevo.</li>
+        <li>Pegá el link en <strong>“Abrir un viaje”</strong> y elegí tu nombre.</li>
+        <li>Adentro de la app tocá <strong>Preparar viaje</strong> (lo que se preparó en Safari no pasa a la app).</li>
+      </ol>
+      <p class="muted small">Abrila siempre desde ese ícono: así el iPhone no borra el mapa ni los datos guardados.</p>
       <button class="btn" onClick={close}>Entendido</button>
     </div>
   )

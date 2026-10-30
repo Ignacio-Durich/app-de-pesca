@@ -99,7 +99,7 @@ export function TripShell({ id, tab = 'pronostico' }) {
         <Link class="btn sos" href={`/t/${id}/emergencias`} aria-label="Emergencias">SOS</Link>
       </header>
       <main class="page">
-        <InstallGuide />
+        <InstallGuide tripId={id} />
         <PrepareBanner trip={trip} tripId={id} tab={tab} />
         <Screen trip={trip} me={me} tripId={id} />
       </main>

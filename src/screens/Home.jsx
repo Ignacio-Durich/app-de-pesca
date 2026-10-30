@@ -1,6 +1,6 @@
 import { useState } from 'preact/hooks'
 import { Link, navigate } from '../nav.jsx'
-import { createTrip, recentTrips } from '../trips/trips.js'
+import { createTrip, recentTrips, tripIdFrom } from '../trips/trips.js'
 
 const num = (s) => (s.trim() === '' ? NaN : Number(s))
 // Acepta varios nombres separados por coma; descarta vacíos y repetidos.
@@ -12,6 +12,8 @@ export function Home() {
   const [draft, setDraft] = useState('')
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
+  const [link, setLink] = useState('')
+  const [linkError, setLinkError] = useState('')
   const set = (k) => (e) => setF({ ...f, [k]: e.target.type === 'checkbox' ? e.target.checked : e.target.value })
 
   const addMembers = () => {
@@ -50,6 +52,14 @@ export function Home() {
     }
   }
 
+  // En el iPhone la app instalada no ve lo de Safari ni tiene barra de direcciones: se entra pegando el link.
+  const open = (e) => {
+    e.preventDefault()
+    const id = tripIdFrom(link)
+    if (!id) return setLinkError('Pegá el link del viaje (el que te pasaron por WhatsApp).')
+    navigate(`/t/${id}`)
+  }
+
   const recents = recentTrips()
   return (
     <main class="page">
@@ -62,6 +72,14 @@ export function Home() {
           </div>
         </section>
       )}
+      <form class="card stack" onSubmit={open}>
+        <h2>Abrir un viaje</h2>
+        <label>Link del viaje
+          <input value={link} onInput={(e) => (setLink(e.target.value), setLinkError(''))} placeholder="Pegá acá el link" autocomplete="off" />
+        </label>
+        {linkError && <p class="error" role="alert">{linkError}</p>}
+        <button class="btn big">Abrir</button>
+      </form>
       <form class="card stack" onSubmit={submit}>
         <h2>Crear viaje</h2>
         <label>Nombre<input value={f.name} onInput={set('name')} placeholder="San Blas" /></label>

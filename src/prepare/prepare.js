@@ -42,7 +42,8 @@ function supabaseDeps(tripId) {
 }
 
 async function cacheOnce(cache, url, fetchImpl) {
-  if (await cache.match(url)) return
+  // ignoreVary como los lectores (sw.js): con Vary: Origin si no, cada "Actualizar" vuelve a bajar todo.
+  if (await cache.match(url, { ignoreVary: true })) return
   const res = await fetchImpl(url, { signal: timeoutSignal(FETCH_TIMEOUT_MS) })
   if (!res.ok) throw new Error(`HTTP ${res.status}`)
   await cache.put(url, res)

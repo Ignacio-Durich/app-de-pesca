@@ -197,7 +197,7 @@ export function MapScreen({ trip, me, tripId }) {
   return (
     <section class="stack">
       <h1>Mapa</h1>
-      <p class="banner amber">{WARNING}</p>
+      <p class="warn">{WARNING}</p>
       {base === 'none' && (
         <p class="muted small">
           Mapa base no descargado — usá <Link href={`/t/${tripId}/preparar`}>Preparar viaje</Link>.

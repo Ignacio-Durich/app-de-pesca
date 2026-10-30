@@ -17,6 +17,11 @@ export const getMe = (tripId) => read(`me:${tripId}`, null)
 export const setMe = (tripId, name) => write(`me:${tripId}`, name)
 
 export const recentTrips = () => read('recentTrips', [])
+
+// El id del viaje dentro de un link pegado (o el id solo). En el iPhone la app instalada no ve lo de
+// Safari ni tiene barra de direcciones: se entra pegando el link.
+const UUID_RE = /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i
+export const tripIdFrom = (text) => text.match(UUID_RE)?.[0].toLowerCase() ?? null
 const addRecent = ({ id, name }) => write('recentTrips', [{ id, name }, ...recentTrips().filter((t) => t.id !== id)])
 
 // Offline primero: guarda local y encola; la cola lo sube con el header del propio viaje.
