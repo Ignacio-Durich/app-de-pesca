@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'vitest'
 import species from '../src/data/species.json'
-import { license } from '../src/data/regulation.json'
+import { license, rules } from '../src/data/regulation.json'
 
 const official = (u) => {
   const h = new URL(u).hostname
@@ -51,6 +51,7 @@ describe('species.json', () => {
     expect(by('cazon').release).toMatch(/devoluci/i)
     expect(by('pez-elefante').dailyLimit).toMatch(/2/)
     expect(by('lenguado').minSizeCm).toBeNull()
+    expect(by('pejerrey').notes).toContain('no podrá utilizarse ninguna clase de carnada')
   })
 })
 
@@ -59,5 +60,15 @@ describe('license', () => {
     expect(license.url).toBe('https://maa.gba.gov.ar/sistemas/pesca/licencias/licencias00.php')
     expect(license.notes.join(' ')).toMatch(/costo no publicado/i)
     expect(license.sources.some((s) => official(s.url))).toBe(true)
+    expect(license.types).toHaveLength(9)
+    expect(license.types.map((t) => t.name)).toContain('Costera Menor Marítima')
+    expect(license.notes.join(' ')).toContain('Cabo San Antonio')
+  })
+
+  test('cantidad de cañas: se muestran ambas citas, sin resolverlas', () => {
+    const txt = rules.map((r) => r.text).join(' ')
+    expect(txt).toContain('Dos cañas por persona')
+    expect(txt).toContain('Con una (1) caña en todos los ambientes')
+    expect(txt).toContain('depende del tipo de licencia')
   })
 })

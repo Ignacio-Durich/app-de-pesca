@@ -11,7 +11,7 @@
   },
   "rules": [
     {
-      "text": "Dos cañas por persona (embarcado y de costa); se pueden llevar cañas de repuesto. Se prohíben los anzuelos triples (robadores), salvo en señuelos artificiales (un solo triple por señuelo, sin pilas ni baterías) y en los casos que el reglamento indica.",
+      "text": "Texto del reglamento, pág. 10: \"Dos cañas por persona, pudiendo portar cañas de repuesto, tanto para la pesca embarcada como de costa. Se prohíbe el uso de los denominados robadores o anzuelos triples, con excepción de los casos específicamente enunciados. Se permiten las modalidades que requieran el uso de señuelos artificiales, definidas como Flycast, Spinning, Trolling, Jigging y Bait cast, permitiéndose un solo anzuelo triple por señuelo, y prohibiéndose el uso de aquellos que contengan pilas o baterias.\"",
       "sources": [
         {
           "title": "Reglamento de pesca deportiva 2026 (PBA), pág. 10",
@@ -24,7 +24,20 @@
       ]
     },
     {
-      "text": "Cupo combinado por día: P.V. + P.V.R. = 38 + 2; P.D. + P.V. = 10 + 40; P.D. pejerrey + P.V. = 50; P.D. + P.V. + P.V.R. = 10 + 38 + 2.",
+      "text": "Texto del reglamento, pág. 3 (licencias): \"Con una (1) caña en todos los ambientes acuáticos, sean ellos lacustres, fluviales o marítimos\". Y, para la Costera Menor Marítima: \"se limitará al uso de 2 (dos) cañas como máximo por pescador en intento de pesca\". La cantidad de cañas depende del tipo de licencia: consultá la página oficial.",
+      "sources": [
+        {
+          "title": "Reglamento de pesca deportiva 2026 (PBA), pág. 3",
+          "url": "https://drive.google.com/file/d/1-6HWnpuQjw38iq0VY5R5mSJ5RnkCHgGk/view"
+        },
+        {
+          "title": "Pesca deportiva — gba.gob.ar",
+          "url": "https://www.gba.gob.ar/desarrollo_agrario/pesca/pesca_deportiva"
+        }
+      ]
+    },
+    {
+      "text": "Cupo combinado por día (pág. 11): P.V. + P.V.R. = 38 piezas + 2 piezas; P.D. + P.V. = 10 piezas + 40 piezas; P.D.pej. + P.V. = 50 piezas; P.D. + P.V. + P.V.R. = 10 piezas + 38 piezas + 2 piezas.",
       "sources": [
         {
           "title": "Reglamento de pesca deportiva 2026 (PBA), pág. 11",
@@ -39,11 +52,50 @@
   ],
   "license": {
     "url": "https://maa.gba.gov.ar/sistemas/pesca/licencias/licencias00.php",
+    "types": [
+      {
+        "name": "No Federada",
+        "duration": "1 (Un) año"
+      },
+      {
+        "name": "Federada",
+        "duration": "1 (Un) año calendario"
+      },
+      {
+        "name": "De Concurso",
+        "duration": "3 (Tres) días"
+      },
+      {
+        "name": "Turística",
+        "duration": "20 (Veinte) días"
+      },
+      {
+        "name": "Jubilados",
+        "duration": "Sin vencimiento"
+      },
+      {
+        "name": "Discapacitados",
+        "duration": "Sin vencimiento"
+      },
+      {
+        "name": "Veteranos de Malvinas",
+        "duration": "Sin vencimiento"
+      },
+      {
+        "name": "Menores de 14 años",
+        "duration": "Optativa (no obligatoria)"
+      },
+      {
+        "name": "Costera Menor Marítima",
+        "duration": "1 (Un) año"
+      }
+    ],
     "notes": [
       "Se tramita en línea (enlace de arriba) o en persona en la Dirección Provincial de Pesca, calle 51 esquina 12, Torre I, piso 5, La Plata.",
       "Costo no publicado en la página oficial: la app no muestra un precio.",
-      "Tipos que pueden interesar a un visitante: Turística (20 días), De Concurso (3 días), No Federada (1 año).",
-      "Menores de 14 años: no se requiere licencia (pág. 3)."
+      "Tipos de licencia y duración según el cuadro de la pág. 3 del reglamento.",
+      "Costera Menor Marítima, zona (pág. 3): \"desarrollada en la zona comprendida entre el extremo Norte del Cabo San Antonio y el extremo sur de la provincia de Buenos Aires\".",
+      "Menores de 14 años (pág. 3): \"No se requerirá Licencia a las personas menores de 14 años. No obstante, aquellos que deseen tenerla podrán obtenerla sin costo.\""
     ],
     "sources": [
       {

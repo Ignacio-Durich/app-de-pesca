@@ -57,6 +57,9 @@ export function Species() {
         <h2>Licencia de pesca</h2>
         <p><a href={license.url} target="_blank" rel="noopener">Tramitar la licencia en línea</a></p>
         <ul>
+          {license.types.map((t) => <li key={t.name}><strong>{t.name}:</strong> {t.duration}</li>)}
+        </ul>
+        <ul>
           {license.notes.map((n) => <li key={n}>{n}</li>)}
         </ul>
         <Sources list={license.sources} />
