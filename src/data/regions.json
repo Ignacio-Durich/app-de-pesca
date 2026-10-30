@@ -2,9 +2,9 @@
   {
     "id": "san-blas",
     "name": "Bahía San Blas",
-    "bbox": [-62.50, -40.80, -61.95, -40.35],
-    "bboxNote": "[diseño] recorte elegido a mano alrededor de la bahía (minlon, minlat, maxlon, maxlat)",
+    "bbox": [-63.19, -41.27, -61.29, -39.83],
+    "bboxNote": "[diseño] 80 km alrededor de San Blas (-40,55, -62,23), el mismo radio que la profundidad (minlon, minlat, maxlon, maxlat)",
     "file": "san-blas.pmtiles",
-    "bytes": 1184103
+    "bytes": 6049492
   }
 ]

@@ -9,18 +9,20 @@ import { parseLocal, fromInstant } from '../lib/time.js'
 import { regionFor, regionKey, downloadRegion } from '../map/basemap.js'
 import { tilesInRadius, depthTileUrl, DEPTH_CACHE } from '../map/tiles.js'
 
-// [diseño] spec §3.4: teselas de profundidad de zoom 8 a 12 en un radio de 80 km.
+// [diseño] spec §3.4: teselas de profundidad de zoom 8 a 10 en un radio de 80 km. Medido el 30/10 en 8
+// puntos del mar de San Blas: z8–10 dan entre −2 y −25 m, z11–12 dan 0 m (sin batimetría). Desde z11
+// se agranda la z10, que ya tiene más detalle que ETOPO1 (~1,8 km por celda).
 export const DEPTH_RADIUS_KM = 80
 export const DEPTH_ZMIN = 8
-export const DEPTH_ZMAX = 12
+export const DEPTH_ZMAX = 10
 export const DEPTH_PARALLEL = 6 // [diseño] pedidos a la vez: de a uno eran ~3 teselas/s (medido en la prueba local, 30/10)
 // [diseño] spec §2.9: cartel si faltan 48 h o menos para el viaje y los datos tienen más de 12 h
 // (o nunca se preparó). "Datos" = el pronóstico (forecastAt).
 export const REMIND_WITHIN_H = 48
 export const STALE_AFTER_H = 12
 export const PHOTO_CACHE = 'photos-v1'
-// Medido el 30/10 en la prueba local (San Blas, 80 km, z8–12): 710 teselas = 13,7 MB en depth-v1.
-export const DEPTH_MB_MEASURED = 13.7
+// Medido el 30/10 en la prueba local (San Blas, 80 km, z8–10): 60 teselas = 3,1 MB en depth-v1.
+export const DEPTH_MB_MEASURED = 3.1
 
 // [diseño] tiempo máximo por pedido: uno colgado no deja "Preparando…" para siempre.
 export const FETCH_TIMEOUT_MS = 20000 // teselas, fotos
@@ -90,7 +92,8 @@ export async function prepareTrip(trip, opts = {}) {
   const region = regionFor(trip.lat, trip.lon)
   if (!mapBaseUrl) s.regionNote = 'Mapa base todavía no configurado'
   else if (!region) s.regionNote = 'Todavía no hay mapa base para este lugar'
-  else if (await get(regionKey(region))) s.regionAt ??= iso()
+  // Si el guardado no pesa lo que dice regions.json, el mapa se actualizó: se baja de nuevo.
+  else if ((await get(regionKey(region)))?.size === region.bytes) s.regionAt ??= iso()
   else {
     s.regionAt = null
     try {

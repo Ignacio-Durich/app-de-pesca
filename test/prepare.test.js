@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { prepareTrip, needsReminder } from '../src/prepare/prepare.js'
+import regions from '../src/data/regions.json'
 
 const trip = { id: 't1', lat: -40.5512, lon: -62.2349, start_date: '2026-11-07', end_date: '2026-11-08' }
 const TILES = Array.from({ length: 10 }, (_, i) => ({ z: 12, x: 1000 + i, y: 2000 }))
@@ -91,13 +92,23 @@ describe('prepareTrip', () => {
   it('downloads the region once and keeps it in region:<id>', async () => {
     const d = deps({ mapBaseUrl: 'https://maps.test' })
     const r1 = recorder()
-    const s = await prepareTrip(trip, { ...d, fetch: r1.fetchImpl })
+    // el archivo completo: del tamaño que dice regions.json
+    const fetch = (u) => (u.endsWith('.pmtiles') ? (r1.calls.push(u), Promise.resolve(new Response(new Uint8Array(regions[0].bytes)))) : r1.fetchImpl(u))
+    const s = await prepareTrip(trip, { ...d, fetch })
     expect(r1.calls).toContain('https://maps.test/san-blas.pmtiles')
     expect(d.store.get('region:san-blas')).toBeInstanceOf(Blob)
     expect(s.regionAt).toBe('2026-11-05T11:30:00.000Z')
     const r2 = recorder()
     await prepareTrip(trip, { ...d, fetch: r2.fetchImpl })
     expect(r2.calls.some((u) => u.endsWith('.pmtiles'))).toBe(false)
+  })
+
+  it('downloads the region again when the stored file is not the size regions.json says (map was updated)', async () => {
+    const d = deps({ mapBaseUrl: 'https://maps.test' })
+    d.store.set('region:san-blas', new Blob(['mapa viejo']))
+    const r = recorder()
+    await prepareTrip(trip, { ...d, fetch: r.fetchImpl })
+    expect(r.calls).toContain('https://maps.test/san-blas.pmtiles')
   })
 
   it('caches each catch photo once and skips failures', async () => {

@@ -3,12 +3,13 @@
 import L from 'leaflet'
 import { depthTileUrl } from './tiles.js'
 import { DEPTH_ZMIN, DEPTH_ZMAX } from '../prepare/prepare.js'
-import { cachedTile, altAt, depthBand, bandColor, BAND_ALPHA, BORDER, BANDS } from './depth.js'
+import { cachedTile, altAtF, depthBand, bandColor, BAND_ALPHA, BORDER, BANDS } from './depth.js'
 
 const COLORS = Array.from({ length: BANDS }, (_, b) => [...bandColor(b), BAND_ALPHA])
 
-// Más allá de z12 se agranda la tesela z12 (spec §3.1). Tierra (y 0 m) transparente; borde de 1 px
-// donde cambia la banda (se marca el píxel cuyo vecino de la derecha o de abajo es distinto).
+// Más allá de DEPTH_ZMAX se agranda esa tesela con interpolación (spec §3.1). Tierra (y 0 m) transparente; borde de 1 px
+// donde cambia la banda (se marca el píxel cuyo vecino de la derecha o de abajo es distinto). [diseño] Contra "sin dato"
+// no hay borde: en la bahía ETOPO1 salta celda a celda alrededor de −1 m y dibujaba una grilla de cuadrados.
 async function drawTile(canvas, { x, y, z }, cache) {
   const sz = Math.min(z, DEPTH_ZMAX), k = 2 ** (z - sz)
   const img = await cachedTile(cache, depthTileUrl({ z: sz, x: Math.floor(x / k), y: Math.floor(y / k) }))
@@ -19,7 +20,7 @@ async function drawTile(canvas, { x, y, z }, cache) {
   const bands = new Int8Array(W * H)
   for (let py = 0; py < H; py++) {
     for (let px = 0; px < W; px++) {
-      bands[py * W + px] = depthBand(altAt(img, Math.floor(ox + px * sx), Math.floor(oy + py * sy))) ?? -1
+      bands[py * W + px] = depthBand(altAtF(img, ox + (px + 0.5) * sx, oy + (py + 0.5) * sy)) ?? -1
     }
   }
   const ctx = canvas.getContext('2d')
@@ -27,7 +28,8 @@ async function drawTile(canvas, { x, y, z }, cache) {
   for (let py = 0; py < H; py++) {
     for (let px = 0; px < W; px++) {
       const i = py * W + px, b = bands[i]
-      const edge = (px + 1 < W && bands[i + 1] !== b) || (py + 1 < H && bands[i + W] !== b)
+      const diff = (j) => b >= 0 && bands[j] >= 0 && bands[j] !== b
+      const edge = (px + 1 < W && diff(i + 1)) || (py + 1 < H && diff(i + W))
       if (edge) out.data.set(BORDER, i * 4)
       else if (b >= 0) out.data.set(COLORS[b], i * 4)
     }

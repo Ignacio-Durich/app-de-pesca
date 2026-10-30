@@ -36,6 +36,17 @@ export const altAt = (img, px, py) => {
   return decodeTerrarium(img.data[i], img.data[i + 1], img.data[i + 2])
 }
 
+// Altura interpolada entre los 4 píxeles vecinos; fx, fy en píxeles con decimales (el centro del
+// píxel i está en i + 0,5). Al agrandar la tesela no salen escalones. En el borde repite el último píxel.
+export const altAtF = (img, fx, fy) => {
+  const gx = fx - 0.5, gy = fy - 0.5, ix = Math.floor(gx), iy = Math.floor(gy)
+  const cx = (v) => Math.min(Math.max(v, 0), img.width - 1), cy = (v) => Math.min(Math.max(v, 0), img.height - 1)
+  const x0 = cx(ix), x1 = cx(ix + 1), y0 = cy(iy), y1 = cy(iy + 1), tx = gx - ix, ty = gy - iy
+  const top = altAt(img, x0, y0) * (1 - tx) + altAt(img, x1, y0) * tx
+  const bot = altAt(img, x0, y1) * (1 - tx) + altAt(img, x1, y1) * tx
+  return top * (1 - ty) + bot * ty
+}
+
 // PNG -> píxeles crudos. Sin conversión de color: los valores RGB son datos, no color.
 async function decodePng(res) {
   const bmp = await createImageBitmap(await res.blob(), { colorSpaceConversion: 'none', premultiplyAlpha: 'none' })
@@ -69,7 +80,7 @@ export function cachedTile(cache, url, decode = decodePng) {
   return p
 }
 
-// Altura (m, negativa) en el punto según la tesela z12 cacheada. null si no está o no llega a MIN_DEPTH_M:
+// Altura (m, negativa) en el punto según la tesela DEPTH_ZMAX cacheada. null si no está o no llega a MIN_DEPTH_M:
 // en la bahía ETOPO1 da 0 o valores de tierra (spec §2.3) y la pantalla muestra "sin dato".
 export async function depthAt(lat, lon, cache, decode) {
   const t = tilePixel(lat, lon, DEPTH_ZMAX)

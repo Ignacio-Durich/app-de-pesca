@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest'
-import { decodeTerrarium, soundingDatum, depthBand, bandColor, tilePixel, depthAt, BANDS, MIN_DEPTH_M } from '../src/map/depth.js'
+import { decodeTerrarium, soundingDatum, depthBand, bandColor, tilePixel, depthAt, altAtF, BANDS, MIN_DEPTH_M } from '../src/map/depth.js'
+import { DEPTH_ZMAX } from '../src/prepare/prepare.js'
 import { within } from '../src/map/nav.js'
 import { depthTileUrl } from '../src/map/tiles.js'
 
@@ -51,9 +52,21 @@ describe('tilePixel', () => {
   })
 })
 
+describe('altAtF', () => {
+  // 2×1 píxeles: 0 m y −10 m (terrarium: R*256 + G + B/256 − 32768)
+  const img = { width: 2, height: 1, data: new Uint8ClampedArray([128, 0, 0, 255, 127, 246, 0, 255]) }
+  it('interpola entre los centros de los píxeles y no se sale del borde', () => {
+    expect(altAtF(img, 0.5, 0.5)).toBe(0)
+    expect(altAtF(img, 1, 0.5)).toBe(-5)
+    expect(altAtF(img, 1.5, 0.5)).toBe(-10)
+    expect(altAtF(img, 0, 0)).toBe(0)
+    expect(altAtF(img, 2, 1)).toBe(-10)
+  })
+})
+
 // Caché falsa con una sola tesela; decode devuelve una imagen 256×256 de un solo color.
 const fakeCache = (lat, lon) => {
-  const t = tilePixel(lat, lon, 12)
+  const t = tilePixel(lat, lon, DEPTH_ZMAX)
   return { match: async (url) => (url === depthTileUrl(t) ? {} : undefined) }
 }
 const solid = ([r, g, b]) => async () => {
