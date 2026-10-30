@@ -15,7 +15,7 @@ const since = process.argv[2] ? new Date(process.argv[2]).toISOString() : null
 const { data, error } = await client.rpc('read_feedback', { p_key: env.FEEDBACK_READ_KEY, p_since: since })
 if (error) throw new Error(error.message)
 
-const when = (t) => new Date(t).toLocaleString('es-AR', { timeZone: 'America/Argentina/Buenos_Aires' })
+const when = (t) => new Date(t).toLocaleString('es-AR', { timeZone: 'America/Argentina/Buenos_Aires', hourCycle: 'h23' })
 console.log(`${data.length} comentario(s)\n`)
 for (const f of data) {
   console.log(`— ${when(f.created_at)} · ${f.author ?? '?'} · pantalla: ${f.page ?? 'menú Más'}`)
