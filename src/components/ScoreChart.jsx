@@ -1,4 +1,4 @@
-// Curva de marea + ventanas + noche + barras de puntaje por hora. SVG a mano (sin librería).
+// Curva de marea + ventanas + noche + barras de puntaje por hora + capturas. SVG a mano (sin librería).
 import { parseLocal } from '../lib/time.js'
 import { hhmm, dec } from '../forecast/view.js'
 import { SCORE_MAX, WINDOW_MIN } from '../score/config.js'
@@ -6,7 +6,7 @@ import { SCORE_MAX, WINDOW_MIN } from '../score/config.js'
 const W = 360, PAD = 8, TOP = 22, TIDE_H = 110, GAP = 10, BAR_H = 50, AXIS = 14
 const H = TOP + TIDE_H + GAP + BAR_H + AXIS
 
-export function ScoreChart({ day, hours, extremes, windows, slots, sun }) {
+export function ScoreChart({ day, hours, extremes, windows, slots, sun, catches = [] }) {
   const day0 = parseLocal(day + 'T00:00')
   const x = (iso) => PAD + ((parseLocal(iso) - day0) / 1440) * (W - 2 * PAD)
   const step = (W - 2 * PAD) / 24
@@ -50,6 +50,9 @@ export function ScoreChart({ day, hours, extremes, windows, slots, sun }) {
       {perHour.map((s, i) => s != null && (
         <rect key={i} class={s >= WINDOW_MIN ? 'sc-bar good' : 'sc-bar'}
           x={PAD + i * step + 1} y={barTop + BAR_H * (1 - s / SCORE_MAX)} width={step - 2} height={(BAR_H * s) / SCORE_MAX} />
+      ))}
+      {catches.map((t, i) => (
+        <circle key={i} class="sc-catch" cx={x(t)} cy={barTop - GAP / 2} r={3}><title>Captura {hhmm(t)}</title></circle>
       ))}
       <line class="sc-axis" x1={PAD} x2={W - PAD} y1={barTop + BAR_H} y2={barTop + BAR_H} />
       {[0, 3, 6, 9, 12, 15, 18, 21].map((h) => (

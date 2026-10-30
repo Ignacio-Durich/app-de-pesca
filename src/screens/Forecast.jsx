@@ -11,6 +11,8 @@ import {
 } from '../forecast/view.js'
 import { ScoreChart } from '../components/ScoreChart.jsx'
 import { ModelTable } from '../components/ModelTable.jsx'
+import { useRows } from '../lib/useRows.js'
+import { fromInstant } from '../lib/time.js'
 
 const MODE_KEY = 'forecastMode' // por teléfono
 const readMode = () => {
@@ -20,7 +22,8 @@ const saveMode = (m) => {
   try { localStorage.setItem(MODE_KEY, m) } catch { /* modo privado */ }
 }
 
-export function Forecast({ trip }) {
+export function Forecast({ trip, tripId }) {
+  const [catches] = useRows('catches', tripId)
   const [res, setRes] = useState(null)
   const [loading, setLoading] = useState(true)
   const [now, setNow] = useState(Date.now)
@@ -53,7 +56,7 @@ export function Forecast({ trip }) {
   const age = ageLabel(ageOf(res.forecast, now))
   return (
     <>
-      <DayView trip={trip} forecast={res.forecast} now={now} />
+      <DayView trip={trip} forecast={res.forecast} now={now} catches={catches} />
       <footer class="data-age">
         <span class={age.amber ? 'amber' : ''}>{age.text}</span>
         {res.error && !loading && <span class="muted"> · no se pudo actualizar</span>}
@@ -63,7 +66,7 @@ export function Forecast({ trip }) {
   )
 }
 
-function DayView({ trip, forecast: f, now }) {
+function DayView({ trip, forecast: f, now, catches }) {
   const days = useMemo(() => tripDays(trip.start_date, trip.end_date), [trip.start_date, trip.end_date])
   const nowIso = nowLocal(now, f.utcOffsetSeconds)
   const today = nowIso.slice(0, 10)
@@ -83,6 +86,8 @@ function DayView({ trip, forecast: f, now }) {
   const sst = median(hours.map((h) => h.sst))
   const noGo = mode === 'embarcado' ? noGoRanges(slots) : []
   const hasTide = tideReaches(f, day)
+  // caught_at es un instante real; se pasa a hora local del viaje para marcarla en el gráfico
+  const catchTimes = catches.map((c) => fromInstant(c.caught_at)).filter((c) => c.date === day).map((c) => `${c.date}T${c.time}`)
 
   return (
     <section class="stack">
@@ -112,7 +117,7 @@ function DayView({ trip, forecast: f, now }) {
 
       <details class="card">
         <summary>Ver hora por hora</summary>
-        {hasTide && <ScoreChart day={day} hours={hours} extremes={dayExt} windows={windows} slots={slots} sun={sun} />}
+        {hasTide && <ScoreChart day={day} hours={hours} extremes={dayExt} windows={windows} slots={slots} sun={sun} catches={catchTimes} />}
         <ModelTable hours={hours} slots={slots} mode={mode} />
         <ul class="day-info">
           <li>Sol: sale {sun.sunrise ? hhmm(sun.sunrise) : '–'}, se pone {sun.sunset ? hhmm(sun.sunset) : '–'}</li>

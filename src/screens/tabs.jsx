@@ -3,6 +3,7 @@ import { Forecast } from './Forecast.jsx'
 import { Checklist } from './Checklist.jsx'
 import { Itinerary } from './Itinerary.jsx'
 import { Emergency } from './Emergency.jsx'
+import { Catches } from './Catches.jsx'
 
 const Placeholder = (title) => () => (
   <section class="card">
@@ -33,7 +34,7 @@ function Mas({ tripId }) {
 export const tabScreens = {
   pronostico: Forecast,
   mapa: Placeholder('Mapa'),
-  capturas: Placeholder('Capturas'),
+  capturas: Catches,
   mas: Mas,
   checklist: Checklist,
   itinerario: Itinerary,
