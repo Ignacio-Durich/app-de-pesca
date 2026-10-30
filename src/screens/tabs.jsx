@@ -2,6 +2,7 @@ import { Link } from '../nav.jsx'
 import { Forecast } from './Forecast.jsx'
 import { Checklist } from './Checklist.jsx'
 import { Itinerary } from './Itinerary.jsx'
+import { Emergency } from './Emergency.jsx'
 
 const Placeholder = (title) => () => (
   <section class="card">
@@ -37,7 +38,7 @@ export const tabScreens = {
   checklist: Checklist,
   itinerario: Itinerary,
   especies: Placeholder('Especies'),
-  emergencias: Placeholder('Emergencias'),
+  emergencias: Emergency,
 }
 
 export const TABS = [

@@ -208,3 +208,4 @@ select {
 .pending-btn { min-height: 44px; padding: 0 12px; font: inherit; font-weight: 600; color: var(--amber); background: none; border: 1px solid var(--amber); border-radius: 22px; cursor: pointer; }
 .pending-panel { order: 9; flex: 1 0 100%; padding: 4px 0 8px; }
 .pending-panel ul { margin: 8px 0 0; padding-left: 18px; }
+.coords { font-size: 1.75rem; font-weight: 700; line-height: 1.2; margin: 0 0 .25rem; }
