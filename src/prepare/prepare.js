@@ -33,6 +33,9 @@ export const DEPTH_MB_PER_TILE = 3.1 / 60
 // Muestra del 30/10 (40 teselas por zoom, 250 km alrededor de San Blas): z8 9,0 KB, z9 6,5, z10 5,8,
 // z11 4,9, z12 4,5, z13 6,1 KB en promedio → ~145 MB las 24.688 teselas.
 export const SAT_MB_ESTIMATED = 145
+// Medido el 30/10 en la prueba local con wifi: 10.354 teselas de satélite en ~8 min (~20 por segundo).
+export const SAT_TILES_PER_S = 20
+export const satMinutes = (tiles) => Math.ceil(tiles / SAT_TILES_PER_S / 60)
 
 // [diseño] tiempo máximo por pedido: uno colgado no deja "Preparando…" para siempre.
 export const FETCH_TIMEOUT_MS = 20000 // teselas, fotos
@@ -46,7 +49,7 @@ export const depthTiles = (trip) => tilesInRadius(trip.lat, trip.lon, DEPTH_RADI
 export const satTiles = (trip) => tilesInRadius(trip.lat, trip.lon, DEPTH_RADIUS_KM, SAT_ZMIN, SAT_ZMAX)
 // La zona creció (80 → 250 km el 30/10): lo guardado antes no la cubre y hay que tocar Actualizar.
 export const zoneChanged = (trip, status) =>
-  !!status && (status.depth?.total !== depthTiles(trip).length || status.sat?.total !== satTiles(trip).length)
+  !!status && (status.depth?.total !== depthTiles(trip).length || (status.sat !== null && status.sat?.total !== satTiles(trip).length))
 const why = (e) => (e?.name === 'QuotaExceededError' ? 'sin espacio en el teléfono' : 'sin señal o se cortó')
 
 function supabaseDeps(tripId) {
@@ -87,7 +90,7 @@ async function cacheTiles(cachesImpl, name, urls, fetchImpl, prog, onBatch) {
   return prog.done < prog.total ? `${prog.done} de ${prog.total} teselas${failed ? `, ${failed} con error` : ''} (${why(lastError)})` : null
 }
 
-// PrepareStatus = {forecastAt, regionAt, regionNote, depth: {done, total}, sat: {done, total}, dataAt, photos: {done, total}, missing: string[]}
+// PrepareStatus = {forecastAt, regionAt, regionNote, depth: {done, total}, sat: {done, total} | null (no lo eligió), dataAt, photos: {done, total}, missing: string[]}
 // Se guarda en prepare:<tripId> después de cada paso. onProgress({step, done?, total?}).
 export async function prepareTrip(trip, opts = {}) {
   const sb = opts.pull && opts.photoUrl ? {} : supabaseDeps(trip.id)
@@ -103,6 +106,7 @@ export async function prepareTrip(trip, opts = {}) {
     mapBaseUrl = import.meta.env.VITE_MAP_BASE_URL,
     tiles = depthTiles(trip),
     sat = satTiles(trip),
+    withSat = true, // la persona elige si baja el satélite (~145 MB)
     now = Date.now,
   } = opts
   const iso = () => new Date(now()).toISOString()
@@ -112,7 +116,7 @@ export async function prepareTrip(trip, opts = {}) {
     regionAt: prev.regionAt ?? null,
     regionNote: null,
     depth: { done: 0, total: tiles.length },
-    sat: { done: 0, total: sat.length },
+    sat: withSat ? { done: 0, total: sat.length } : null,
     dataAt: prev.dataAt ?? null,
     photos: { done: 0, total: 0 },
     missing: [],
@@ -148,9 +152,11 @@ export async function prepareTrip(trip, opts = {}) {
   const depthMiss = await cacheTiles(cachesImpl, DEPTH_CACHE, tiles.map(depthTileUrl), fetchImpl, s.depth, () => onProgress({ step: 'depth', ...s.depth }))
   if (depthMiss) s.missing.push(`Profundidad: ${depthMiss}`)
   await save()
-  const satMiss = await cacheTiles(cachesImpl, SAT_CACHE, sat.map(satTileUrl), fetchImpl, s.sat, () => onProgress({ step: 'sat', ...s.sat }))
-  if (satMiss) s.missing.push(`Satélite: ${satMiss}`)
-  await save()
+  if (withSat) {
+    const satMiss = await cacheTiles(cachesImpl, SAT_CACHE, sat.map(satTileUrl), fetchImpl, s.sat, () => onProgress({ step: 'sat', ...s.sat }))
+    if (satMiss) s.missing.push(`Satélite: ${satMiss}`)
+    await save()
+  }
 
   // 4. Datos compartidos: todas las tablas del viaje, y spots y sondeos de la zona.
   onProgress({ step: 'data' })

@@ -1,11 +1,11 @@
 // "Preparar viaje" (spec §2.9), el cartel que lo recuerda y la guía de instalación en iPhone (spec §3.4).
-import { useEffect, useMemo, useState } from 'preact/hooks'
+import { useEffect, useMemo, useRef, useState } from 'preact/hooks'
 import { Link } from '../nav.jsx'
 import { localGet } from '../lib/local.js'
 import { fromInstant } from '../lib/time.js'
 import { dayLabel, dec } from '../forecast/view.js'
 import { regionFor } from '../map/basemap.js'
-import { prepareTrip, needsReminder, zoneChanged, statusKey, depthTiles, satTiles, DEPTH_MB_PER_TILE, SAT_MB_ESTIMATED } from '../prepare/prepare.js'
+import { prepareTrip, needsReminder, zoneChanged, statusKey, depthTiles, satTiles, DEPTH_MB_PER_TILE, SAT_MB_ESTIMATED, satMinutes } from '../prepare/prepare.js'
 
 const nowTrip = () => fromInstant(new Date().toISOString())
 const nowLocalIso = () => { const n = nowTrip(); return `${n.date}T${n.time}` }
@@ -19,7 +19,7 @@ const STEP = {
   forecast: () => 'Pronóstico…',
   region: (p) => (p.total ? `Mapa base: ${mb(p.done)} de ${mb(p.total)}` : `Mapa base: ${mb(p.done ?? 0)}`),
   depth: (p) => `Profundidad: ${p.done} de ${p.total} teselas`,
-  sat: (p) => `Satélite: ${p.done} de ${p.total} teselas`,
+  sat: (p) => `Satélite: ${p.done} de ${p.total} teselas${p.left ? ` · faltan unos ${p.left} min` : ''}`,
   data: () => 'Datos del viaje…',
   photos: (p) => `Fotos: ${p.done} de ${p.total}`,
 }
@@ -35,14 +35,29 @@ export function Prepare({ trip, tripId }) {
   const tileCount = useMemo(() => depthTiles(trip).length, [trip.lat, trip.lon])
   const satCount = useMemo(() => satTiles(trip).length, [trip.lat, trip.lon])
 
-  const run = async () => {
+  // Minutos que faltan del satélite, con la velocidad de los últimos 15 s de esta descarga
+  // (lo que ya estaba guardado pasa enseguida y no dice cuánto tarda el resto).
+  const satStart = useRef(null)
+  const onProgress = (p) => {
+    if (p.step !== 'sat') return setProg(p)
+    const t = Date.now(), e = (satStart.current ??= { t, done: p.done, left: null })
+    const secs = (t - e.t) / 1000
+    if (secs >= 15) {
+      const rate = (p.done - e.done) / secs
+      Object.assign(e, { t, done: p.done, left: rate > 0 ? Math.ceil((p.total - p.done) / rate / 60) : null })
+    }
+    setProg(e.left ? { ...p, left: e.left } : p)
+  }
+
+  const run = async (withSat) => {
     if (prog) return
+    satStart.current = null
     // Primer uso: pedir que el navegador no borre lo guardado (spec §3.4). Se ignora si no se puede.
     if (!status) navigator.storage?.persist?.().catch(() => {})
     setError(null)
     setProg({ step: 'forecast' })
     try {
-      setStatus(await prepareTrip({ ...trip, id: tripId }, { onProgress: setProg }))
+      setStatus(await prepareTrip({ ...trip, id: tripId }, { onProgress, withSat }))
     } catch (e) {
       setError(`No se pudo terminar: ${e.message || e}. Tocá de nuevo y sigue desde donde quedó.`)
     } finally {
@@ -67,15 +82,29 @@ export function Prepare({ trip, tripId }) {
               : `Mapa base (${region.name}): ${region.bytes ? mb(region.bytes) : 'tamaño desconocido'}`}
           </li>
           <li>Profundidad: {tileCount} teselas (unos {Math.round(tileCount * DEPTH_MB_PER_TILE)} MB)</li>
-          <li>Satélite: {satCount} teselas (en San Blas, unos {SAT_MB_ESTIMATED} MB)</li>
+          <li>Satélite (si lo elegís): {satCount} teselas (en San Blas, unos {SAT_MB_ESTIMATED} MB)</li>
           <li>Spots, sondeos, checklist, itinerario y capturas, con sus fotos</li>
         </ul>
         <p class="muted small">Conviene hacerlo con wifi.</p>
       </div>
 
-      <button class="btn big primary" onClick={run} disabled={!!prog || s === undefined}>
-        {prog ? 'Preparando…' : s ? 'Actualizar' : 'Preparar viaje'}
-      </button>
+      {prog ? (
+        <button class="btn big primary" disabled>Preparando…</button>
+      ) : (
+        <div class="card stack">
+          <h2>¿Bajar también la vista satelital?</h2>
+          <p class="muted small">
+            Ocupa unos {SAT_MB_ESTIMATED} MB más y con wifi tarda unos {satMinutes(satCount)} minutos (medido en una prueba;
+            si ya bajaste una parte, menos). Sin satélite el mapa igual tiene calles, costa y profundidad.
+          </p>
+          <button class="btn big primary" onClick={() => run(true)} disabled={s === undefined}>
+            {s ? 'Actualizar' : 'Preparar'} con satélite (~{satMinutes(satCount)} min)
+          </button>
+          <button class="btn big" onClick={() => run(false)} disabled={s === undefined}>
+            {s ? 'Actualizar' : 'Preparar'} sin satélite
+          </button>
+        </div>
+      )}
       {prog && (
         <div class="card" aria-live="polite">
           <p>{STEP[prog.step]?.(prog)}</p>
@@ -95,7 +124,8 @@ export function Prepare({ trip, tripId }) {
             <li>{ok(s.forecastAt)} Pronóstico{s.forecastAt && ` · ${when(s.forecastAt)}`}</li>
             <li>{ok(s.regionAt)} Mapa base{s.regionAt ? ` · ${when(s.regionAt)}` : s.regionNote ? ` · ${s.regionNote}` : ''}</li>
             <li>{ok(s.depth.total && s.depth.done === s.depth.total)} Profundidad · {s.depth.done} de {s.depth.total} teselas</li>
-            {s.sat && <li>{ok(s.sat.total && s.sat.done === s.sat.total)} Satélite · {s.sat.done} de {s.sat.total} teselas</li>}
+            {s.sat ? <li>{ok(s.sat.total && s.sat.done === s.sat.total)} Satélite · {s.sat.done} de {s.sat.total} teselas</li>
+              : <li>— Satélite · no se bajó (se ve solo con señal)</li>}
             <li>{ok(s.dataAt)} Spots, sondeos, checklist, itinerario y capturas{s.dataAt && ` · ${when(s.dataAt)}`}</li>
             <li>{ok(s.photos.done === s.photos.total)} Fotos · {s.photos.done} de {s.photos.total}</li>
           </ul>

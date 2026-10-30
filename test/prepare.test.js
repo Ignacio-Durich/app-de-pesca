@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { prepareTrip, needsReminder, zoneChanged, depthTiles, satTiles } from '../src/prepare/prepare.js'
+import { prepareTrip, needsReminder, zoneChanged, depthTiles, satTiles, satMinutes } from '../src/prepare/prepare.js'
 import regions from '../src/data/regions.json'
 
 const trip = { id: 't1', lat: -40.5512, lon: -62.2349, start_date: '2026-11-07', end_date: '2026-11-08' }
@@ -122,6 +122,16 @@ describe('prepareTrip', () => {
     expect(s.missing.join(' ')).toMatch(/Satélite: 1 de 2 teselas, 1 con error/)
   })
 
+  it('skips the satellite when the person chose not to download it', async () => {
+    const SAT = [{ z: 13, x: 2681, y: 5086 }]
+    const d = deps({ sat: SAT })
+    const r = recorder()
+    const s = await prepareTrip(trip, { ...d, fetch: r.fetchImpl, withSat: false })
+    expect(r.calls.filter((u) => u.includes('eox.at'))).toEqual([])
+    expect(s.sat).toBeNull()
+    expect(s.missing.join(' ')).not.toMatch(/Satélite/)
+  })
+
   it('caches each catch photo once and skips failures', async () => {
     const d = deps()
     const bad = recorder((u) => u.includes('catch-photos'))
@@ -173,7 +183,17 @@ describe('zoneChanged', () => {
   it('is true for a status saved with the old 80 km zone (60 depth tiles, no satellite)', () => {
     expect(zoneChanged(trip, { depth: { total: 60 } })).toBe(true)
   })
+  it('is false when the satellite was skipped on purpose', () => {
+    expect(zoneChanged(trip, { ...full, sat: null })).toBe(false)
+  })
   it('is false before the first preparation', () => {
     expect(zoneChanged(trip, null)).toBe(false)
+  })
+})
+
+describe('satMinutes', () => {
+  it('estimates whole minutes at the measured 20 tiles per second', () => {
+    expect(satMinutes(24688)).toBe(21)
+    expect(satMinutes(100)).toBe(1)
   })
 })
