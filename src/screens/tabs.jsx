@@ -4,6 +4,7 @@ import { Checklist } from './Checklist.jsx'
 import { Itinerary } from './Itinerary.jsx'
 import { Emergency } from './Emergency.jsx'
 import { Catches } from './Catches.jsx'
+import { Prepare } from './Prepare.jsx'
 
 const Placeholder = (title) => () => (
   <section class="card">
@@ -40,6 +41,7 @@ export const tabScreens = {
   itinerario: Itinerary,
   especies: Placeholder('Especies'),
   emergencias: Emergency,
+  preparar: Prepare,
 }
 
 export const TABS = [
@@ -52,4 +54,5 @@ export const MAS_ITEMS = [
   ['checklist', 'Checklist'],
   ['itinerario', 'Itinerario'],
   ['especies', 'Especies'],
+  ['preparar', 'Preparar viaje'],
 ]

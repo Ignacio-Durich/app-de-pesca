@@ -1,0 +1,10 @@
+[
+  {
+    "id": "san-blas",
+    "name": "Bahía San Blas",
+    "bbox": [-62.50, -40.80, -61.95, -40.35],
+    "bboxNote": "[diseño] recorte elegido a mano alrededor de la bahía (minlon, minlat, maxlon, maxlat)",
+    "file": "san-blas.pmtiles",
+    "bytes": null
+  }
+]

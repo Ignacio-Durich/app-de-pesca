@@ -5,6 +5,7 @@ import { loadTrip, getMe, setMe } from '../trips/trips.js'
 import { pending, onQueueChange } from '../lib/queue.js'
 import { WhoAreYou } from './WhoAreYou.jsx'
 import { tabScreens, TABS, MAS_ITEMS } from './tabs.jsx'
+import { PrepareBanner, InstallGuide } from './Prepare.jsx'
 
 const TABLE_LABEL = {
   checklist_items: 'Checklist', itinerary_items: 'Itinerario', trips: 'Viaje', catches: 'Captura', spots: 'Punto', soundings: 'Sondeo',
@@ -98,6 +99,8 @@ export function TripShell({ id, tab = 'pronostico' }) {
         <Link class="btn sos" href={`/t/${id}/emergencias`} aria-label="Emergencias">SOS</Link>
       </header>
       <main class="page">
+        <InstallGuide />
+        <PrepareBanner trip={trip} tripId={id} tab={tab} />
         <Screen trip={trip} me={me} tripId={id} />
       </main>
       <nav class="tabs">

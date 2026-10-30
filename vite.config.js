@@ -7,7 +7,22 @@ export default defineConfig({
     preact(),
     VitePWA({
       registerType: 'autoUpdate',
-      workbox: { globPatterns: ['**/*.{js,css,html,json,svg,png}'] },
+      workbox: {
+        globPatterns: ['**/*.{js,css,html,json,svg,png}'],
+        // Lo que guarda "Preparar viaje" (src/prepare/prepare.js) se sirve desde la Cache API sin señal.
+        runtimeCaching: [
+          {
+            urlPattern: /\/storage\/v1\/object\/public\/catch-photos\//,
+            handler: 'CacheFirst',
+            options: { cacheName: 'photos-v1', matchOptions: { ignoreVary: true } },
+          },
+          {
+            urlPattern: /^https:\/\/s3\.amazonaws\.com\/elevation-tiles-prod\/terrarium\//,
+            handler: 'CacheFirst',
+            options: { cacheName: 'depth-v1', matchOptions: { ignoreVary: true } },
+          },
+        ],
+      },
       manifest: {
         name: 'App de Pesca',
         short_name: 'Pesca',

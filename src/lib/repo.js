@@ -11,6 +11,7 @@ const read = async (table, scope) => (await localGet(key(table, scope))) ?? []
 
 // scope = tripId, o 'near:<lat>,<lon>' para spots y sondeos.
 export const listRows = read
+export const nearScope = (lat, lon) => `near:${lat.toFixed(2)},${lon.toFixed(2)}`
 
 // Aplica local al instante y encola. La op va primero: si se corta entre una y otra,
 // la fila sube igual y el próximo pull la trae.

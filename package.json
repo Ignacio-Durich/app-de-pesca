@@ -12,7 +12,10 @@
   "dependencies": {
     "@supabase/supabase-js": "^2.118.0",
     "idb-keyval": "^6.3.0",
+    "leaflet": "^1.9.4",
+    "pmtiles": "^3.2.1",
     "preact": "^11.1.0",
+    "protomaps-leaflet": "^5.1.0",
     "suncalc": "^2.1.1"
   },
   "devDependencies": {
