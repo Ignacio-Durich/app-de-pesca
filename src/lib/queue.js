@@ -24,8 +24,9 @@ const update = (fn) =>
     notify()
   })
 
-// op: {id, table, kind: 'upsert'|'delete', row?, rowId?, photo?: {path, blob}}
-export const enqueue = (op) => update((q) => [...q, { tries: 0, nextTry: 0, ...op }])
+// op: {id, table, kind: 'upsert'|'delete', tripId, row?, rowId?, photo?: {path, blob}}
+// tripId: el viaje dueño de la op (header x-trip-id al subirla); null para spots/sondeos.
+export const enqueue = (op) => update((q) => [...q, { tries: 0, nextTry: 0, tripId: null, ...op }])
 
 const isDuplicate = (e) =>
   e && (e.status == 409 || e.statusCode == 409 || /duplicate|already exists/i.test(e.message ?? ''))
@@ -47,15 +48,23 @@ let inflight = null
 
 // Procesa la cola en orden. Una op que falla se saltea (backoff) y las siguientes siguen,
 // salvo las de la misma fila, que esperan para no aplicarse fuera de orden. Nunca descarta.
-export function flush(client) {
+// getClient(tripId) -> client: cada op sube con el cliente (x-trip-id) de su propio viaje.
+export function flush(getClient) {
   return (inflight ??= (async () => {
     let done = 0
     let failed = 0
     const blocked = new Set()
+    const clients = new Map()
     for (const op of await pending()) {
       const rowKey = `${op.table}:${op.rowId ?? op.row?.id}`
       if (blocked.has(rowKey) || op.nextTry > Date.now()) {
         if (op.nextTry > Date.now()) blocked.add(rowKey)
+        continue
+      }
+      if (!clients.has(op.tripId)) clients.set(op.tripId, getClient(op.tripId))
+      const client = clients.get(op.tripId)
+      if (!client) {
+        blocked.add(rowKey) // sin cliente para ese viaje todavía: espera, sin castigo
         continue
       }
       try {
@@ -74,12 +83,9 @@ export function flush(client) {
   })().finally(() => (inflight = null)))
 }
 
-// Al abrir, al volver la conexión y cada 60 s. getClient() puede devolver null (sin viaje todavía).
+// Al abrir, al volver la conexión y cada 60 s. getClient(tripId) puede devolver null (op se saltea).
 export function startAutoFlush(getClient) {
-  const go = () => {
-    const client = getClient()
-    if (client) flush(client).catch(() => {})
-  }
+  const go = () => flush(getClient).catch(() => {})
   go()
   if (typeof window === 'undefined') return () => {}
   window.addEventListener('online', go)

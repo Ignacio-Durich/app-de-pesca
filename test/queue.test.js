@@ -36,7 +36,7 @@ describe('queue', () => {
     const c = fakeClient()
     const blob = new Blob(['jpg'], { type: 'image/jpeg' })
     await Q.enqueue(op('1', { photo: { path: 't/a.jpg', blob } }))
-    expect(await Q.flush(c)).toEqual({ done: 1, failed: 0 })
+    expect(await Q.flush(() => c)).toEqual({ done: 1, failed: 0 })
     expect(c.calls.upload[0]).toMatchObject({ bucket: 'catch-photos', path: 't/a.jpg', o: { contentType: 'image/jpeg' } })
     expect(c.calls.upsert).toEqual([{ table: 'catches', row: { id: 'r-1' } }])
     expect(await Q.pending()).toHaveLength(0)
@@ -45,7 +45,7 @@ describe('queue', () => {
   it('delete ops call delete().eq(id)', async () => {
     const c = fakeClient()
     await Q.enqueue({ id: 'd', table: 'catches', kind: 'delete', rowId: 'x' })
-    await Q.flush(c)
+    await Q.flush(() => c)
     expect(c.calls.delete).toEqual([{ table: 'catches', col: 'id', id: 'x' }])
   })
 
@@ -54,21 +54,21 @@ describe('queue', () => {
     vi.spyOn(Date, 'now').mockReturnValue(now)
     const c = fakeClient({ upsertError: { message: 'offline' } })
     await Q.enqueue(op('1'))
-    expect(await Q.flush(c)).toEqual({ done: 0, failed: 1 })
+    expect(await Q.flush(() => c)).toEqual({ done: 0, failed: 1 })
     let [o] = await Q.pending()
     expect(o).toMatchObject({ tries: 1, nextTry: now + 10_000 })
     // not due yet: not retried
-    expect(await Q.flush(c)).toEqual({ done: 0, failed: 0 })
+    expect(await Q.flush(() => c)).toEqual({ done: 0, failed: 0 })
     expect(c.calls.upsert).toHaveLength(1)
     // backoff doubles and is capped at 10 min
     vi.spyOn(Date, 'now').mockReturnValue(now + 10_000)
-    await Q.flush(c)
+    await Q.flush(() => c)
     ;[o] = await Q.pending()
     expect(o).toMatchObject({ tries: 2, nextTry: now + 10_000 + 20_000 })
     for (let i = 0; i < 12; i++) {
       const t = (await Q.pending())[0].nextTry
       vi.spyOn(Date, 'now').mockReturnValue(t)
-      await Q.flush(c)
+      await Q.flush(() => c)
     }
     const last = (await Q.pending())[0]
     expect(last.nextTry - Date.now()).toBe(600_000)
@@ -80,7 +80,7 @@ describe('queue', () => {
     c.from = (t) => ({ ...orig(t), upsert: async (row) => { if (row.id === 'r-1') throw new Error('boom'); return orig(t).upsert(row) } })
     await Q.enqueue(op('1'))
     await Q.enqueue(op('2'))
-    expect(await Q.flush(c)).toEqual({ done: 1, failed: 1 })
+    expect(await Q.flush(() => c)).toEqual({ done: 1, failed: 1 })
     expect((await Q.pending()).map((o) => o.id)).toEqual(['1'])
   })
 
@@ -88,7 +88,7 @@ describe('queue', () => {
     const c = fakeClient({ upsertError: { message: 'x' } })
     await Q.enqueue(op('1', { row: { id: 'same', v: 1 } }))
     await Q.enqueue(op('2', { row: { id: 'same', v: 2 } }))
-    expect(await Q.flush(c)).toEqual({ done: 0, failed: 1 })
+    expect(await Q.flush(() => c)).toEqual({ done: 0, failed: 1 })
     expect(c.calls.upsert).toHaveLength(1)
     expect(await Q.pending()).toHaveLength(2)
   })
@@ -96,7 +96,7 @@ describe('queue', () => {
   it('survives reopening the app: op and Blob are still there', async () => {
     const c = fakeClient({ upsertError: { message: 'offline' } })
     await Q.enqueue(op('1', { photo: { path: 't/a.jpg', blob: new Blob(['hola'], { type: 'image/jpeg' }) } }))
-    await Q.flush(c)
+    await Q.flush(() => c)
     vi.resetModules()
     const Q2 = await import('../src/lib/queue.js')
     const [o] = await Q2.pending()
@@ -111,11 +111,11 @@ describe('queue', () => {
     vi.spyOn(Date, 'now').mockImplementation(() => now)
     const c = fakeClient({ upsertError: { message: 'offline' } })
     await Q.enqueue(op('1', { photo: { path: 't/a.jpg', blob: new Blob(['x']) } }))
-    await Q.flush(c)
+    await Q.flush(() => c)
     c.opts.upsertError = null
     c.opts.uploadError = { statusCode: '409', message: 'The resource already exists' }
     now += 60_000
-    expect(await Q.flush(c)).toEqual({ done: 1, failed: 0 })
+    expect(await Q.flush(() => c)).toEqual({ done: 1, failed: 0 })
     expect(c.calls.upsert.map((u) => u.row.id)).toEqual(['r-1', 'r-1'])
     expect(await Q.pending()).toHaveLength(0)
   })
@@ -123,15 +123,15 @@ describe('queue', () => {
   it('a non-duplicate storage error is a failure', async () => {
     const c = fakeClient({ uploadError: { status: 500, message: 'down' } })
     await Q.enqueue(op('1', { photo: { path: 't/a.jpg', blob: new Blob(['x']) } }))
-    expect(await Q.flush(c)).toEqual({ done: 0, failed: 1 })
+    expect(await Q.flush(() => c)).toEqual({ done: 0, failed: 1 })
     expect(c.calls.upsert).toHaveLength(0)
   })
 
   it('a second flush while one runs returns the same promise', async () => {
     const c = fakeClient()
     await Q.enqueue(op('1'))
-    const a = Q.flush(c)
-    const b = Q.flush(c)
+    const a = Q.flush(() => c)
+    const b = Q.flush(() => c)
     expect(b).toBe(a)
     await a
     expect(c.calls.upsert).toHaveLength(1)
@@ -142,7 +142,7 @@ describe('queue', () => {
     const off = Q.onQueueChange(cb)
     await Q.enqueue(op('1'))
     expect(cb).toHaveBeenCalledTimes(1)
-    await Q.flush(fakeClient())
+    await Q.flush(() => fakeClient())
     expect(cb).toHaveBeenCalledTimes(2)
     off()
     await Q.enqueue(op('2'))
@@ -160,5 +160,25 @@ describe('queue', () => {
     const stop = Q.startAutoFlush(() => c)
     await vi.waitFor(() => expect(c.calls.upsert).toHaveLength(1))
     stop()
+  })
+
+  it('each op goes through the client of its own trip; spots use getClient(null)', async () => {
+    const byTrip = { A: fakeClient(), B: fakeClient(), null: fakeClient() }
+    const getClient = vi.fn((t) => byTrip[t])
+    await Q.enqueue(op('1', { tripId: 'A' }))
+    await Q.enqueue(op('2', { tripId: 'B' }))
+    await Q.enqueue(op('3', { tripId: 'A' }))
+    await Q.enqueue(op('4', { table: 'spots', tripId: null }))
+    expect(await Q.flush(getClient)).toEqual({ done: 4, failed: 0 })
+    expect(byTrip.A.calls.upsert.map((u) => u.row.id)).toEqual(['r-1', 'r-3'])
+    expect(byTrip.B.calls.upsert.map((u) => u.row.id)).toEqual(['r-2'])
+    expect(byTrip.null.calls.upsert.map((u) => u.table)).toEqual(['spots'])
+    expect(getClient).toHaveBeenCalledTimes(3) // cached per trip within a flush
+  })
+
+  it('an op whose trip has no client yet waits, with no penalty', async () => {
+    await Q.enqueue(op('1', { tripId: 'A' }))
+    expect(await Q.flush(() => null)).toEqual({ done: 0, failed: 0 })
+    expect(await Q.pending()).toMatchObject([{ tries: 0, nextTry: 0 }])
   })
 })
