@@ -1,6 +1,11 @@
 // Descarga y normaliza Open-Meteo: marea/oleaje (marine) + viento/clima de 3 modelos.
 // Las horas vienen en hora local del lugar como texto sin offset; no se parsean acá.
+import { timeoutSignal } from '../lib/timeout.js'
+
 export const MODELS = { ecmwf: 'ecmwf_ifs025', gfs: 'gfs_seamless', icon: 'icon_seamless' }
+
+// [diseño] tiempo máximo por pedido a Open-Meteo: sin esto, "Descargando pronóstico…" puede quedar para siempre.
+export const FORECAST_TIMEOUT_MS = 20_000
 
 const TZ = 'America/Argentina/Buenos_Aires'
 const COMMON = `past_days=1&forecast_days=16&timezone=${TZ}`
@@ -77,7 +82,7 @@ export function normalize(marine, weather, fetchedAt) {
 }
 
 const getJson = async (fetchImpl, url) => {
-  const res = await fetchImpl(url)
+  const res = await fetchImpl(url, { signal: timeoutSignal(FORECAST_TIMEOUT_MS) })
   if (!res.ok) throw new Error(`Open-Meteo respondió ${res.status}`)
   return res.json()
 }

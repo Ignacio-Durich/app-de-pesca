@@ -99,6 +99,13 @@ describe('repo', () => {
     expect(await R.pull(pullClient([{ id: 'a' }]), 'catches', T)).toEqual([])
   })
 
+  it('pull: an empty server answer on a trip scope keeps local rows (F2)', async () => {
+    await R.saveRow('trips', T, { id: T, name: 'San Blas' })
+    await Q.flush(okClient)
+    expect(await R.pull(pullClient([]), 'trips', T)).toEqual([{ id: T, name: 'San Blas' }])
+    expect(await R.listRows('trips', T)).toEqual([{ id: T, name: 'San Blas' }])
+  })
+
   it('near scope selects all rows with no filter', async () => {
     const c = pullClient([{ id: 's' }])
     await R.pull(c, 'spots', 'near:-40.5,-62.2')
@@ -124,13 +131,14 @@ describe('repo', () => {
 
   it('pull overlapping a flush does not drop a row that just uploaded', async () => {
     await R.saveRow('catches', T, { id: 'a', v: 'local' })
-    const { client, release, called } = gatedClient([]) // server read before the upsert committed
+    // server read before the upsert committed ('z' keeps the answer non-empty, see F2)
+    const { client, release, called } = gatedClient([{ id: 'z' }])
     const pulling = R.pull(client, 'catches', T)
     await called
     expect(await Q.flush(okClient)).toEqual({ done: 1, failed: 0 })
     release()
-    expect(await pulling).toEqual([{ id: 'a', v: 'local' }])
-    expect(await R.listRows('catches', T)).toEqual([{ id: 'a', v: 'local' }])
+    expect(await pulling).toEqual([{ id: 'z' }, { id: 'a', v: 'local' }])
+    expect(await R.listRows('catches', T)).toEqual([{ id: 'z' }, { id: 'a', v: 'local' }])
   })
 
   it('pull overlapping a flush does not resurrect a row that was just deleted', async () => {

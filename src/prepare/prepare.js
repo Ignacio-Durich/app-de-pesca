@@ -4,6 +4,7 @@ import { getForecast as defaultGetForecast } from '../forecast/cache.js'
 import { pull as repoPull, nearScope } from '../lib/repo.js'
 import { makeClient } from '../lib/db.js'
 import { localGet, localSet } from '../lib/local.js'
+import { withTimeout, timeoutSignal } from '../lib/timeout.js'
 import { parseLocal, fromInstant } from '../lib/time.js'
 import { regionFor, regionKey, downloadRegion } from '../map/basemap.js'
 import { tilesInRadius, depthTileUrl, DEPTH_CACHE } from '../map/tiles.js'
@@ -39,11 +40,6 @@ function supabaseDeps(tripId) {
     photoUrl: (path) => client.storage.from('catch-photos').getPublicUrl(path).data.publicUrl,
   }
 }
-
-// ponytail: la carrera no cancela el pedido de abajo; solo deja de esperarlo.
-const withTimeout = (p, ms) =>
-  Promise.race([p, new Promise((_, fail) => setTimeout(() => fail(new Error('timeout')), ms))])
-const timeoutSignal = (ms) => AbortSignal.timeout?.(ms) // Safari < 16 no lo tiene: sin límite
 
 async function cacheOnce(cache, url, fetchImpl) {
   if (await cache.match(url)) return

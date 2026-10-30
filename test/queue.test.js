@@ -181,4 +181,47 @@ describe('queue', () => {
     expect(await Q.flush(() => null)).toEqual({ done: 0, failed: 0 })
     expect(await Q.pending()).toMatchObject([{ tries: 0, nextTry: 0 }])
   })
+
+  it('a forced flush retries an op whose nextTry is still in the future (F4)', async () => {
+    const c = fakeClient({ upsertError: { message: 'offline' } })
+    await Q.enqueue(op('1'))
+    await Q.flush(() => c) // fails: nextTry = now + 10 s
+    c.opts.upsertError = null
+    expect(await Q.flush(() => c)).toEqual({ done: 0, failed: 0 }) // not forced: waits
+    expect(await Q.flush(() => c, { force: true })).toEqual({ done: 1, failed: 0 })
+    expect(await Q.pending()).toHaveLength(0)
+  })
+
+  it('offline, the periodic tick does not try (no tries burnt); online forces a flush (F4)', async () => {
+    vi.useFakeTimers({ toFake: ['setInterval', 'clearInterval'] })
+    const nav = { onLine: false }
+    vi.stubGlobal('navigator', nav)
+    const listeners = {}
+    vi.stubGlobal('window', { addEventListener: (t, f) => (listeners[t] = f), removeEventListener: () => {} })
+    vi.stubGlobal('document', { addEventListener: () => {}, removeEventListener: () => {} })
+    try {
+      const c = fakeClient({ upsertError: { message: 'offline' } })
+      await Q.enqueue(op('1'))
+      const stop = Q.startAutoFlush(() => c)
+      await vi.advanceTimersByTimeAsync(5 * 60_000)
+      expect(c.calls.upsert).toHaveLength(0)
+      expect(await Q.pending()).toMatchObject([{ tries: 0 }])
+      // back online after a failure with a long backoff: the 'online' event retries now
+      nav.onLine = true
+      await Q.flush(() => c)
+      c.opts.upsertError = null
+      listeners.online()
+      await vi.waitFor(async () => expect(await Q.pending()).toHaveLength(0))
+      stop()
+    } finally {
+      vi.useRealTimers()
+      vi.unstubAllGlobals()
+    }
+  })
+
+  it('a throwing listener does not reject enqueue (no duplicate op on retry) (F14)', async () => {
+    Q.onQueueChange(() => { throw new Error('ui bug') })
+    await expect(Q.enqueue(op('1'))).resolves.toBeUndefined()
+    expect(await Q.pending()).toHaveLength(1)
+  })
 })

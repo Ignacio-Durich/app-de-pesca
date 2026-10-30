@@ -1,5 +1,5 @@
-import { describe, it, expect } from 'vitest'
-import { makeClient } from '../src/lib/db.js'
+import { describe, it, expect, vi, afterEach } from 'vitest'
+import { makeClient, DB_TIMEOUT_MS } from '../src/lib/db.js'
 
 const A = '11111111-1111-4111-8111-111111111111'
 
@@ -27,5 +27,18 @@ describe('makeClient', () => {
     await makeClient(null, cfg(fetch)).from('checklist_items').select()
     expect(seen).toHaveLength(1)
     expect(seen[0].has('x-trip-id')).toBe(false)
+  })
+
+  afterEach(() => vi.useRealTimers())
+  it('a stalled request is aborted, so a flush cannot hang forever (F3)', async () => {
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] })
+    let onCall
+    const called = new Promise((r) => (onCall = r))
+    const hang = (u, init) => (onCall(), new Promise((_, fail) => init?.signal?.addEventListener('abort', () => fail(new Error('aborted')))))
+    const p = makeClient(A, cfg(hang)).from('catches').upsert({ id: 'x' }).then((r) => r) // builders start on then()
+    await called
+    await vi.advanceTimersByTimeAsync(DB_TIMEOUT_MS)
+    const { error } = await p
+    expect(error).toBeTruthy()
   })
 })

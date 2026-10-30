@@ -33,6 +33,7 @@ export async function deleteRow(table, scope, id) {
 }
 
 // Trae lo del servidor y reemplaza lo local, salvo filas con op pendiente (gana lo local).
+// Excepción: respuesta vacía en un scope de viaje (ver abajo).
 // Lanza si hay error de red: la pantalla ya muestra lo local y puede ignorarlo.
 export async function pull(client, table, scope) {
   // Ids pendientes antes y después del pedido: un flush que termina mientras el select está
@@ -44,6 +45,9 @@ export async function pull(client, table, scope) {
   // ponytail: spots/sondeos se bajan enteros; el filtro de 50 km es del lado cliente (en la pantalla). Alcanza con pocos datos.
   const { data, error } = await q
   if (error) throw error
+  // Un [] del viaje casi siempre es un pedido roto (header/RLS, fila del viaje ausente), no "se borró
+  // todo": se deja lo local. Costo aceptado: borrar la última fila desde otro teléfono no se propaga.
+  if (!scope.startsWith('near:') && data.length === 0) return read(table, scope)
   return lock(async () => {
     const ids = new Set([...before, ...(await pendingIds(table))])
     const keep = (await read(table, scope)).filter((r) => ids.has(r.id))

@@ -1,6 +1,6 @@
 import 'fake-indexeddb/auto'
-import { describe, it, expect, beforeEach } from 'vitest'
-import { createTrip, loadTrip, getMe, setMe, recentTrips } from '../src/trips/trips.js'
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
+import { createTrip, loadTrip, getMe, setMe, recentTrips, LOAD_TIMEOUT_MS } from '../src/trips/trips.js'
 import { listRows, saveRow } from '../src/lib/repo.js'
 import { pending } from '../src/lib/queue.js'
 
@@ -35,6 +35,14 @@ describe('loadTrip', () => {
   it('sin red y sin copia local: offlineFirstOpen', async () => {
     const r = await loadTrip('nuevo', { pullImpl: async () => { throw new Error('offline') } })
     expect(r).toEqual({ trip: null, offlineFirstOpen: true })
+  })
+
+  afterEach(() => vi.useRealTimers())
+  it('sin copia local y la red colgada: offlineFirstOpen al vencer el tiempo (F3)', async () => {
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] })
+    const p = loadTrip('colgado', { pullImpl: never })
+    await vi.advanceTimersByTimeAsync(LOAD_TIMEOUT_MS)
+    expect(await p).toEqual({ trip: null, offlineFirstOpen: true })
   })
 
   it('sin copia local y el server no lo tiene: offlineFirstOpen', async () => {

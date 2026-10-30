@@ -1,7 +1,7 @@
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, vi, afterEach } from 'vitest'
 import marine from './fixtures/marine-sanblas.json'
 import weather from './fixtures/weather-sanblas.json'
-import { buildUrls, normalize, fetchForecast, MODELS } from '../src/forecast/fetch.js'
+import { buildUrls, normalize, fetchForecast, MODELS, FORECAST_TIMEOUT_MS } from '../src/forecast/fetch.js'
 
 const FETCHED = '2026-10-29T12:00:00.000Z'
 const f = normalize(marine, weather, FETCHED)
@@ -114,5 +114,15 @@ describe('fetchForecast', () => {
   it('throws on non-ok status including the status', async () => {
     const fake = async () => ({ ok: false, status: 429, json: async () => ({}) })
     await expect(fetchForecast(0, 0, fake)).rejects.toThrow(/429/)
+  })
+  afterEach(() => vi.useRealTimers())
+  it('a hanging request is aborted and rejects (F3)', async () => {
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] })
+    // Like real fetch: never answers, but honours the abort signal.
+    const hang = (u, init) => new Promise((_, fail) => init?.signal?.addEventListener('abort', () => fail(new Error('aborted'))))
+    const p = fetchForecast(0, 0, hang)
+    const r = expect(p).rejects.toThrow()
+    await vi.advanceTimersByTimeAsync(FORECAST_TIMEOUT_MS)
+    await r
   })
 })

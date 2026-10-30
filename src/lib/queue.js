@@ -7,7 +7,8 @@ const BACKOFF_MAX_MS = 600_000 // [diseño] ... con tope de 10 min
 
 const lock = makeLock()
 const listeners = new Set()
-const notify = () => listeners.forEach((cb) => cb())
+// Un listener que tira no debe hacer fallar enqueue: la op ya quedó guardada y reintentar la duplicaría.
+const notify = () => listeners.forEach((cb) => { try { cb() } catch { /* problema del listener */ } })
 
 // Avisa cuando cambia la cola (para el contador "N pendientes"). Devuelve la baja.
 export function onQueueChange(cb) {
@@ -49,7 +50,8 @@ let inflight = null
 // Procesa la cola en orden. Una op que falla se saltea (backoff) y las siguientes siguen,
 // salvo las de la misma fila, que esperan para no aplicarse fuera de orden. Nunca descarta.
 // getClient(tripId) -> client: cada op sube con el cliente (x-trip-id) de su propio viaje.
-export function flush(getClient) {
+// force: ignora el backoff (al abrir la app y al volver la señal no tiene sentido esperar).
+export function flush(getClient, { force = false } = {}) {
   return (inflight ??= (async () => {
     let done = 0
     let failed = 0
@@ -57,8 +59,9 @@ export function flush(getClient) {
     const clients = new Map()
     for (const op of await pending()) {
       const rowKey = `${op.table}:${op.rowId ?? op.row?.id}`
-      if (blocked.has(rowKey) || op.nextTry > Date.now()) {
-        if (op.nextTry > Date.now()) blocked.add(rowKey)
+      const waiting = !force && op.nextTry > Date.now()
+      if (blocked.has(rowKey) || waiting) {
+        if (waiting) blocked.add(rowKey)
         continue
       }
       if (!clients.has(op.tripId)) clients.set(op.tripId, getClient(op.tripId))
@@ -87,22 +90,30 @@ let flushClient = null
 
 // Tras una escritura local: sube ya (sin esperar los 60 s) si hay señal. Sin esperar el resultado.
 // Si hay un flush en curso, otro detrás: el que corre ya tomó su lista antes de esta escritura.
+const offline = () => globalThis.navigator?.onLine === false
+
 export function requestFlush() {
-  if (!flushClient || navigator.onLine === false) return
+  if (!flushClient || offline()) return
   const go = () => flush(flushClient).catch(() => {})
   inflight ? inflight.then(go, go) : go()
 }
 
-// Al abrir, al volver la conexión y cada 60 s. getClient(tripId) puede devolver null (op se saltea).
+// Al abrir (y al volver a la app), al volver la conexión y cada 60 s. getClient(tripId) puede
+// devolver null (op se saltea). Sin señal no se intenta: no gasta intentos ni infla el backoff.
 export function startAutoFlush(getClient) {
   flushClient = getClient
-  const go = () => flush(getClient).catch(() => {})
-  go()
+  const go = (force) => offline() || flush(getClient, { force }).catch(() => {})
+  const now = () => go(true)
+  const tick = () => go(false)
+  const onVisible = () => document.visibilityState === 'visible' && now()
+  now()
   if (typeof window === 'undefined') return () => {}
-  window.addEventListener('online', go)
-  const timer = setInterval(go, AUTO_FLUSH_MS)
+  window.addEventListener('online', now)
+  document.addEventListener('visibilitychange', onVisible)
+  const timer = setInterval(tick, AUTO_FLUSH_MS)
   return () => {
-    window.removeEventListener('online', go)
+    window.removeEventListener('online', now)
+    document.removeEventListener('visibilitychange', onVisible)
     clearInterval(timer)
   }
 }

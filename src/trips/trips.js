@@ -1,5 +1,9 @@
 import { makeClient } from '../lib/db.js'
 import { listRows, saveRow, pull } from '../lib/repo.js'
+import { withTimeout } from '../lib/timeout.js'
+
+// [diseño] primera apertura: si el viaje no llega en este tiempo, se trata como sin señal.
+export const LOAD_TIMEOUT_MS = 10_000
 
 const read = (key, fallback) => {
   try { return JSON.parse(localStorage.getItem(key)) ?? fallback } catch { return fallback }
@@ -38,7 +42,7 @@ export async function loadTrip(id, { pullImpl = defaultPull } = {}) {
     return { trip: local, source: 'local', refresh }
   }
   try {
-    const trip = find(await pullImpl(id), id)
+    const trip = find(await withTimeout(pullImpl(id), LOAD_TIMEOUT_MS), id)
     if (trip) {
       addRecent(trip)
       return { trip, source: 'remote' }
