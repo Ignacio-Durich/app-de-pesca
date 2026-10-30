@@ -59,6 +59,18 @@ export function moonFactor(tMin, moon) {
   return Math.min(MOON.max, f)
 }
 
+// Corrige el error de punto flotante antes de redondear (0,75 da 7,4999999 y no 7,5). No es un valor de diseño.
+const FLOAT_EPS = 1e-9
+
+// Puntaje 0–SCORE_MAX de los factores no nulos (los pesos se renormalizan, R10).
+// Sin marea ni viento no hay puntaje: la luna sola (día sin datos horarios) no es un pronóstico.
+export function baseScore(factors) {
+  if (factors.tide == null && factors.wind == null) return null
+  let num = 0, den = 0
+  for (const [k, w] of Object.entries(WEIGHTS)) if (factors[k] != null) (num += w * factors[k]), (den += w)
+  return den ? Math.round((SCORE_MAX * num) / den + FLOAT_EPS) : null
+}
+
 // Slots cada SLOT_MIN del día local. Viento: por modelo se calcula max(medio, 0.7·ráfaga) y se toma
 // la mediana; ese valor ya incluye la ráfaga, así que se pasa a windFactor con gust = null.
 export function scoreDay(forecast, extremes, dateIso, mode, { nightFishing }) {
@@ -84,6 +96,8 @@ export function scoreDay(forecast, extremes, dateIso, mode, { nightFishing }) {
       .map((k) => effectiveWind(at(m, (h) => h?.wind[k]), at(m, (h) => h?.gust[k])))
       .filter((x) => x != null)
     const windKmh = median(effs)
+    // Viento medio (sin ráfagas) solo para mostrar en el motivo; el puntaje y noGo usan el efectivo (R5).
+    const meanKmh = median(models.map((k) => at(m, (h) => h?.wind[k])))
     const wave = at(m, (h) => h?.wave)
     const rain = median(models.map((k) => at(m, (h) => h?.rain[k])))
     const phase = tidePhaseAt(m, extremes)
@@ -93,15 +107,12 @@ export function scoreDay(forecast, extremes, dateIso, mode, { nightFishing }) {
       moon: moonFactor(m, moon),
       weather: rain == null ? null : 1 - rain / 100,
     }
-    let num = 0, den = 0
-    for (const [k, w] of Object.entries(WEIGHTS)) if (factors[k] != null) (num += w * factors[k]), (den += w)
 
     const night = sunrise != null && sunset != null && (m < sunrise || m >= sunset)
     const edge = sunrise != null && sunset != null &&
       ((m >= sunrise && m < sunrise + LIGHT.edgeMin) || (m >= sunset - LIGHT.edgeMin && m < sunset))
-    let score = null
-    if (den) {
-      score = Math.round((SCORE_MAX * num) / den)
+    let score = baseScore(factors)
+    if (score != null) {
       if (edge) score = Math.min(SCORE_MAX, score + LIGHT.edgeBonus)
       if (night && !nightFishing) score = Math.min(NIGHT_CAP, score)
     }
@@ -114,6 +125,7 @@ export function scoreDay(forecast, extremes, dateIso, mode, { nightFishing }) {
       noGo: mode === 'embarcado' && !night && ((windKmh ?? 0) > NOGO_WIND_KMH || (wave ?? 0) > WAVE_NOGO_M),
       uncertain: effs.length >= 2 && Math.max(...effs) - Math.min(...effs) > UNCERTAIN_KMH,
       windKmh: windKmh == null ? null : Math.round(windKmh * 10) / 10,
+      meanKmh: meanKmh == null ? null : Math.round(meanKmh * 10) / 10,
       dirDeg: circularMean(dir),
       phase, // para el motivo de las ventanas
     })

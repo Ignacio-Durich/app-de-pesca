@@ -21,6 +21,7 @@ const mk = (scores, { from = '10:00', night = false, wind = 12, dir = 225 } = {}
       score,
       night,
       windKmh: Array.isArray(wind) ? wind[i] : wind,
+      meanKmh: Array.isArray(wind) ? wind[i] : wind,
       dirDeg: Array.isArray(dir) ? dir[i] : dir,
       phase: tidePhaseAt(m, EXT),
     }
@@ -84,6 +85,16 @@ describe('findWindows', () => {
   it('reason: end of rising + slack near the high, mean wind and cardinal (spec §2.2 example)', () => {
     const [w] = findWindows(mk([8, 8, 8, 8], { from: '11:00', wind: [10, 12, 13, 13] }), { nightFishing: false })
     expect(w.reason).toBe('fin de creciente + repunte, viento 12 km/h SO')
+  })
+
+  it('reason: a window starting 30 min after the high is still "fin de creciente + repunte" (F8)', () => {
+    const [w] = findWindows(mk([8, 8], { from: '13:48' }), { nightFishing: false })
+    expect(w.reason).toMatch(/^fin de creciente \+ repunte, /)
+  })
+
+  it('reason shows the mean wind, not the gust-inflated effective wind (F9)', () => {
+    const s = mk([8, 8], { from: '08:30' }).map((x) => ({ ...x, windKmh: 21, meanKmh: 10 }))
+    expect(findWindows(s, { nightFishing: false })[0].reason).toBe('creciente, viento 10 km/h SO')
   })
 
   it('reason: creciente / bajante / repunte (embarcado)', () => {

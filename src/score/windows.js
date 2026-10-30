@@ -10,16 +10,17 @@ function tidePart(run, mode) {
   if (!ph.length) return null
   const start = parseLocal(run[0].t)
   const end = parseLocal(run.at(-1).t) + SLOT_MIN
-  // pleamar dentro de la ventana o hasta 2 h después de su fin
+  // pleamar dentro de la ventana, hasta 2 h después de su fin o hasta 1 h antes de su inicio (el pico de R13)
   const highs = ph.flatMap((p) => [p.prev, p.next]).filter((e) => e.type === 'high').map((e) => parseLocal(e.t))
-  if (highs.some((h) => h >= start && h <= end + TIDE.costa.peakBeforeHighMin)) return 'fin de creciente + repunte'
+  if (highs.some((h) => h >= start - TIDE.costa.peakAfterHighMin && h <= end + TIDE.costa.peakBeforeHighMin))
+    return 'fin de creciente + repunte'
   if (mode === 'embarcado' && ph.some((p) => Math.min(p.sincePrevMin, p.toNextMin) <= TIDE.embarcado.slackMin))
     return 'repunte'
   return ph.filter((p) => p.rising).length * 2 >= ph.length ? 'creciente' : 'bajante'
 }
 
 function reason(run, mode) {
-  const winds = run.map((s) => s.windKmh).filter((x) => x != null)
+  const winds = run.map((s) => s.meanKmh).filter((x) => x != null) // medio, no el efectivo (R5)
   const dir = circularMean(run.map((s) => s.dirDeg))
   const parts = [tidePart(run, mode)]
   if (winds.length) {

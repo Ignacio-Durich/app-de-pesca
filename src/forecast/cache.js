@@ -8,6 +8,10 @@ export const cacheKey = (trip) => `forecast:${trip.lat.toFixed(2)},${trip.lon.to
 
 export const ageOf = (f, now) => (f ? Math.max(0, (now - Date.parse(f.fetchedAt)) / 3.6e6) : null)
 
+// Refrescar en pantalla (al volver a la app y cada tanto): copia vieja o ninguna, y sin otro pedido en curso.
+// Mismo borde que getForecast: con menos de REFRESH_HOURS devolvería la copia sin pedir nada.
+export const shouldRefresh = (ageHours, loading) => !loading && (ageHours == null || ageHours >= REFRESH_HOURS)
+
 // Solo lo local, al instante: la pantalla se dibuja con esto antes de tocar la red.
 export async function cachedForecast(trip, now = Date.now()) {
   const forecast = (await localGet(cacheKey(trip))) ?? null

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { tripDays, nowLocal, pickDay, countdown, slotNow, noGoRanges, tideReaches, dayLabel, phaseLabel } from '../src/forecast/view.js'
+import { tripDays, nowLocal, pickDay, countdown, slotNow, noGoRanges, tideReaches, dayLabel, phaseLabel, heroWindows } from '../src/forecast/view.js'
 
 describe('trip days', () => {
   it('lists every day of the trip, inclusive', () => {
@@ -67,5 +67,23 @@ describe('phaseLabel', () => {
   it('describes the tide phase and the next extreme', () => {
     expect(phaseLabel({ rising: true, next: { t: '2026-11-08T14:08', type: 'high' } })).toBe('creciente, pleamar 14:08')
     expect(phaseLabel(null)).toBeNull()
+  })
+})
+
+describe('heroWindows (F5)', () => {
+  const D = '2026-11-08'
+  const w = (start, end, score) => ({ start: `${D}T${start}`, end: `${D}T${end}`, score })
+  const ws = [w('07:00', '09:00', 9), w('15:00', '16:30', 8), w('18:00', '19:00', 7)]
+  it('today: windows that already ended are dropped, the rest keep their order', () => {
+    expect(heroWindows(ws, `${D}T10:00`, true)).toEqual([ws[1], ws[2]])
+  })
+  it('today: a window in progress is kept', () => {
+    expect(heroWindows(ws, `${D}T08:30`, true)).toEqual(ws)
+  })
+  it('today, all ended → empty (the hero says they already passed)', () => {
+    expect(heroWindows(ws, `${D}T19:00`, true)).toEqual([])
+  })
+  it('another day: unchanged', () => {
+    expect(heroWindows(ws, `${D}T22:00`, false)).toEqual(ws)
   })
 })

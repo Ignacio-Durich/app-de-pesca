@@ -1,13 +1,13 @@
 // Pantalla Pronóstico (spec §2.2): se dibuja con lo local y después refresca (spec §3.4).
-import { useEffect, useMemo, useState } from 'preact/hooks'
-import { cachedForecast, getForecast, ageLabel, ageOf } from '../forecast/cache.js'
+import { useEffect, useMemo, useRef, useState } from 'preact/hooks'
+import { cachedForecast, getForecast, ageLabel, ageOf, shouldRefresh } from '../forecast/cache.js'
 import { findExtremes } from '../forecast/tides.js'
 import { scoreDay, median } from '../score/score.js'
 import { findWindows } from '../score/windows.js'
 import { moonDay } from '../score/moon.js'
 import { NOGO_WIND_KMH, WAVE_NOGO_M } from '../score/config.js'
 import {
-  tripDays, nowLocal, pickDay, dayLabel, countdown, slotNow, noGoRanges, tideReaches, phaseLabel, hhmm, dec,
+  tripDays, nowLocal, pickDay, dayLabel, countdown, slotNow, noGoRanges, tideReaches, phaseLabel, hhmm, dec, heroWindows,
 } from '../forecast/view.js'
 import { ScoreChart } from '../components/ScoreChart.jsx'
 import { ModelTable } from '../components/ModelTable.jsx'
@@ -27,23 +27,41 @@ export function Forecast({ trip, tripId }) {
   const [res, setRes] = useState(null)
   const [loading, setLoading] = useState(true)
   const [now, setNow] = useState(Date.now)
+  const run = useRef(0) // cambia al cambiar de lugar o desmontar: las respuestas viejas se descartan
+
+  const refresh = () => {
+    const my = run.current
+    setLoading(true)
+    getForecast(trip)
+      .then((r) => my === run.current && setRes(r))
+      .catch((e) => my === run.current && setRes((s) => ({ forecast: null, ...s, error: e.message })))
+      .finally(() => my === run.current && setLoading(false))
+  }
 
   useEffect(() => {
-    let alive = true
+    const my = ++run.current
     setRes(null)
-    setLoading(true)
-    cachedForecast(trip).then((r) => alive && setRes((s) => s ?? r)).catch(() => {})
-    getForecast(trip)
-      .then((r) => alive && setRes(r))
-      .catch((e) => alive && setRes((s) => ({ forecast: null, ...s, error: e.message })))
-      .finally(() => alive && setLoading(false))
-    return () => { alive = false }
+    cachedForecast(trip).then((r) => my === run.current && setRes((s) => s ?? r)).catch(() => {})
+    refresh()
+    return () => { run.current++ }
   }, [trip.lat, trip.lon])
 
+  // Reloj cada 30 s y al volver a la app (iPhone la deja suspendida horas sin recargar).
   useEffect(() => {
-    const id = setInterval(() => setNow(Date.now()), 30000)
-    return () => clearInterval(id)
+    const tick = () => setNow(Date.now())
+    const onVisible = () => document.visibilityState === 'visible' && tick()
+    const id = setInterval(tick, 30000)
+    document.addEventListener('visibilitychange', onVisible)
+    return () => {
+      clearInterval(id)
+      document.removeEventListener('visibilitychange', onVisible)
+    }
   }, [])
+
+  // En cada tic: si la copia quedó vieja (o no hay), se vuelve a pedir.
+  useEffect(() => {
+    if (res && shouldRefresh(ageOf(res.forecast, now), loading)) refresh()
+  }, [now])
 
   if (!res) return <p class="muted">Cargando…</p>
   if (!res.forecast) {
@@ -135,11 +153,19 @@ function DayView({ trip, forecast: f, now, catches }) {
   )
 }
 
-function Hero({ windows, slots, isToday, nowIso }) {
+function Hero({ windows: all, slots, isToday, nowIso }) {
+  const windows = heroWindows(all, nowIso, isToday)
   const [best, ...rest] = windows
-  if (!best) return <section class="card hero"><p class="hero-label">Sin ventana recomendable este día.</p></section>
   const nowSlot = isToday ? slotNow(slots, nowIso) : null
   const phase = nowSlot && phaseLabel(nowSlot.phase)
+  if (!best) {
+    return (
+      <section class="card hero">
+        <p class="hero-label">{all.length ? 'Ya pasaron las ventanas de hoy.' : 'Sin ventana recomendable este día.'}</p>
+        {nowSlot?.score != null && <p class="muted">Ahora: {nowSlot.score}/10{phase && ` · ${phase}`}</p>}
+      </section>
+    )
+  }
   return (
     <section class="card hero">
       <p class="hero-label">{best.weak ? 'Día flojo · mejor tramo' : 'Anzuelos al agua'}</p>

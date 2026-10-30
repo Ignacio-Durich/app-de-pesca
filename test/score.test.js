@@ -5,7 +5,7 @@ import { normalize, MODELS } from '../src/forecast/fetch.js'
 import { findExtremes } from '../src/forecast/tides.js'
 import { parseLocal } from '../src/lib/time.js'
 import { WEIGHTS } from '../src/score/config.js'
-import { median, tideFactor, windFactor, moonFactor, scoreDay } from '../src/score/score.js'
+import { median, tideFactor, windFactor, moonFactor, scoreDay, baseScore } from '../src/score/score.js'
 
 const DAY = '2026-11-07'
 const fresh = () => normalize(marine, weather, '2026-10-29T12:00:00Z')
@@ -97,6 +97,26 @@ describe('moonFactor', () => {
   })
 })
 
+describe('baseScore', () => {
+  it('an exact .5 rounds up despite float error (F7: 7.4999999 → 8)', () => {
+    // 0.5·0.7 + 0.3·1 + 0.1·0.3 + 0.1·0.7 = 0.75 → 7.5
+    expect(baseScore({ tide: 0.7, wind: 1.0, moon: 0.3, weather: 1 - 30 / 100 })).toBe(8)
+  })
+  it('no tide and no wind → null: the moon alone is not a forecast (F16)', () => {
+    expect(baseScore({ tide: null, wind: null, moon: 1, weather: null })).toBe(null)
+    expect(baseScore({ tide: null, wind: null, moon: 1, weather: 0.9 })).toBe(null)
+    expect(baseScore({ tide: 1, wind: null, moon: 1, weather: null })).toBe(10)
+  })
+})
+
+describe('scoreDay: a day with no hourly rows (F16)', () => {
+  it('gives no score, so no moon-only window', () => {
+    const f = fresh()
+    f.hours = f.hours.filter((h) => !h.t.startsWith(DAY))
+    expect(scoreDay(f, [], DAY, 'costa', { nightFishing: true }).every((s) => s.score === null)).toBe(true)
+  })
+})
+
 describe('scoreDay (fixtures 7/11)', () => {
   const slots = run(fresh())
 
@@ -151,6 +171,13 @@ describe('scoreDay (fixtures 7/11)', () => {
     const f = fresh()
     f.hours.find((h) => h.t === `${DAY}T12:00`).wind.gfs = 40
     expect(slot(run(f), '12:00').uncertain).toBe(true)
+  })
+
+  it('meanKmh is the median of the models mean wind, without gusts (F9)', () => {
+    // 12:30: ecmwf 11.75, gfs 10.7 (icon null in the fixture) → 11.2; windKmh (with gusts) 15.5
+    const s = slot(slots, '12:30')
+    expect(s.meanKmh).toBeCloseTo(11.2, 1)
+    expect(s.windKmh).toBeGreaterThan(s.meanKmh)
   })
 
   it('a single model available: median of one value, never uncertain', () => {

@@ -43,6 +43,10 @@ export function noGoRanges(slots) {
   return out
 }
 
+// Ventanas para el titular: hoy, las que ya terminaron no se muestran (orden por puntaje intacto).
+// Hoy y todas terminadas → [] (la pantalla dice que ya pasaron).
+export const heroWindows = (windows, nowIso, isToday) => (isToday ? windows.filter((w) => w.end > nowIso) : windows)
+
 // spec §3.1: el horizonte es el último dato de marea no nulo.
 export const tideReaches = (forecast, day) => !!forecast.lastTideT && forecast.lastTideT.slice(0, 10) >= day
 

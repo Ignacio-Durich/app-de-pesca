@@ -2,7 +2,7 @@ import 'fake-indexeddb/auto'
 import { describe, it, expect, beforeEach } from 'vitest'
 import marine from './fixtures/marine-sanblas.json'
 import weather from './fixtures/weather-sanblas.json'
-import { getForecast, cachedForecast, ageLabel, cacheKey } from '../src/forecast/cache.js'
+import { getForecast, cachedForecast, ageLabel, cacheKey, shouldRefresh, REFRESH_HOURS } from '../src/forecast/cache.js'
 import { localSet, localDel } from '../src/lib/local.js'
 
 const trip = { lat: -40.5512, lon: -62.2349 }
@@ -74,5 +74,14 @@ describe('ageLabel', () => {
   it('under 24 h is not amber', () => {
     expect(ageLabel(3)).toEqual({ text: 'Pronóstico de hace 3 h', amber: false })
     expect(ageLabel(0.25)).toEqual({ text: 'Pronóstico de hace 15 min', amber: false })
+  })
+})
+
+describe('shouldRefresh (F6)', () => {
+  it('refreshes an old or missing forecast, never while a refresh is running', () => {
+    expect(shouldRefresh(REFRESH_HOURS + 0.5, false)).toBe(true)
+    expect(shouldRefresh(null, false)).toBe(true)
+    expect(shouldRefresh(0.2, false)).toBe(false)
+    expect(shouldRefresh(REFRESH_HOURS + 0.5, true)).toBe(false)
   })
 })
