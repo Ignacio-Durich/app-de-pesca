@@ -183,7 +183,15 @@ input[type='date']::-webkit-date-and-time-value, input[type='time']::-webkit-dat
 }
 .warn { margin: 0; padding: 12px 16px; color: var(--text); background: var(--card); border: 2px solid var(--amber); border-radius: 14px; }
 .amber { color: var(--amber); font-weight: 600; }
-details summary { min-height: 44px; display: flex; align-items: center; font-weight: 600; cursor: pointer; }
+details summary { min-height: 44px; display: flex; align-items: center; font-weight: 600; cursor: pointer; list-style: none; }
+/* Flechita a la derecha: › cerrado, ⌄ abierto (pedido en el feedback del 30/10) */
+details summary::-webkit-details-marker { display: none; }
+details summary::after {
+  content: ""; margin-left: auto; width: 10px; height: 10px;
+  border-right: 2px solid currentColor; border-bottom: 2px solid currentColor;
+  transform: rotate(-45deg); transition: transform .15s;
+}
+details[open] summary::after { transform: rotate(45deg); }
 .chart { display: block; width: 100%; height: auto; margin: 8px 0; }
 .sc-night { fill: var(--night); opacity: .25; }
 .sc-win { fill: var(--good); opacity: .22; }
@@ -244,7 +252,19 @@ select {
 .goto-arrow { font-size: 4rem; line-height: 1; width: 4rem; margin: 8px auto; text-align: center; transition: transform .2s; }
 /* Especies: foto, resumen y botón redondo "i" que abre el detalle (como en Pelis by Pili) */
 .sp-head { display: flex; gap: 12px; align-items: flex-start; }
-.sp-photo { width: 96px; height: 72px; object-fit: cover; border-radius: 10px; flex: none; background: var(--line); }
+.sp-photo { width: 96px; height: 72px; padding: 0; border: 0; border-radius: 10px; flex: none; background: #fff; overflow: hidden; }
+.sp-photo img { width: 100%; height: 100%; object-fit: contain; display: block; }
+.lightbox {
+  position: fixed; inset: 0; z-index: 2000; background: rgba(0, 0, 0, .92); color: #fff;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px;
+  padding: calc(16px + env(safe-area-inset-top)) 16px calc(16px + env(safe-area-inset-bottom));
+}
+.lightbox img { max-width: 100%; max-height: 75vh; object-fit: contain; }
+.lightbox p { margin: 0; text-align: center; }
+.lightbox-close {
+  position: absolute; top: calc(12px + env(safe-area-inset-top)); right: 12px; width: 44px; height: 44px;
+  border-radius: 50%; border: 1px solid rgba(255, 255, 255, .5); background: transparent; color: #fff; font-size: 20px;
+}
 .sp-sum { flex: 1; min-width: 0; }
 .sp-sum p { margin: 2px 0; font-size: .9rem; }
 .sp-keep { font-weight: 600; color: var(--good); }

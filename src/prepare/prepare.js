@@ -7,14 +7,20 @@ import { localGet, localSet } from '../lib/local.js'
 import { withTimeout, timeoutSignal } from '../lib/timeout.js'
 import { parseLocal, fromInstant } from '../lib/time.js'
 import { regionFor, regionKey, downloadRegion } from '../map/basemap.js'
-import { tilesInRadius, depthTileUrl, DEPTH_CACHE } from '../map/tiles.js'
+import { tilesInRadius, depthTileUrl, DEPTH_CACHE, satTileUrl, SAT_CACHE } from '../map/tiles.js'
 
-// [diseño] spec §3.4: teselas de profundidad de zoom 8 a 10 en un radio de 80 km. Medido el 30/10 en 8
+// [diseño] spec §3.4: teselas de profundidad de zoom 8 a 10 en un radio de 250 km (el grupo hace más de
+// 4 h de viaje por día; OSRM, 30/10: Bahía Blanca 4,4 h, Caleta de los Loros 4,2 h, Las Grutas 4,4 h,
+// las tres dentro de 250 km en línea recta). Medido el 30/10 en 8
 // puntos del mar de San Blas: z8–10 dan entre −2 y −25 m, z11–12 dan 0 m (sin batimetría). Desde z11
 // se agranda la z10, que ya tiene más detalle que ETOPO1 (~1,8 km por celda).
-export const DEPTH_RADIUS_KM = 80
+export const DEPTH_RADIUS_KM = 250
 export const DEPTH_ZMIN = 8
 export const DEPTH_ZMAX = 10
+// [diseño] satélite de zoom 8 a 13 en el mismo radio: con 10 m por píxel, z13 (~15 m) ya muestra todo el
+// detalle; más cerca el mapa agranda la z13.
+export const SAT_ZMIN = 8
+export const SAT_ZMAX = 13
 export const DEPTH_PARALLEL = 6 // [diseño] pedidos a la vez: de a uno eran ~3 teselas/s (medido en la prueba local, 30/10)
 // [diseño] spec §2.9: cartel si faltan 48 h o menos para el viaje y los datos tienen más de 12 h
 // (o nunca se preparó). "Datos" = el pronóstico (forecastAt).
@@ -22,7 +28,11 @@ export const REMIND_WITHIN_H = 48
 export const STALE_AFTER_H = 12
 export const PHOTO_CACHE = 'photos-v1'
 // Medido el 30/10 en la prueba local (San Blas, 80 km, z8–10): 60 teselas = 3,1 MB en depth-v1.
-export const DEPTH_MB_MEASURED = 3.1
+// ponytail: a 250 km son 412 teselas; se estima con el mismo promedio (~52 KB por tesela).
+export const DEPTH_MB_PER_TILE = 3.1 / 60
+// Muestra del 30/10 (40 teselas por zoom, 250 km alrededor de San Blas): z8 9,0 KB, z9 6,5, z10 5,8,
+// z11 4,9, z12 4,5, z13 6,1 KB en promedio → ~145 MB las 24.688 teselas.
+export const SAT_MB_ESTIMATED = 145
 
 // [diseño] tiempo máximo por pedido: uno colgado no deja "Preparando…" para siempre.
 export const FETCH_TIMEOUT_MS = 20000 // teselas, fotos
@@ -33,6 +43,10 @@ const NEAR_TABLES = ['spots', 'soundings']
 
 export const statusKey = (tripId) => `prepare:${tripId}`
 export const depthTiles = (trip) => tilesInRadius(trip.lat, trip.lon, DEPTH_RADIUS_KM, DEPTH_ZMIN, DEPTH_ZMAX)
+export const satTiles = (trip) => tilesInRadius(trip.lat, trip.lon, DEPTH_RADIUS_KM, SAT_ZMIN, SAT_ZMAX)
+// La zona creció (80 → 250 km el 30/10): lo guardado antes no la cubre y hay que tocar Actualizar.
+export const zoneChanged = (trip, status) =>
+  !!status && (status.depth?.total !== depthTiles(trip).length || status.sat?.total !== satTiles(trip).length)
 const why = (e) => (e?.name === 'QuotaExceededError' ? 'sin espacio en el teléfono' : 'sin señal o se cortó')
 
 function supabaseDeps(tripId) {
@@ -51,7 +65,29 @@ async function cacheOnce(cache, url, fetchImpl) {
   await cache.put(url, res)
 }
 
-// PrepareStatus = {forecastAt, regionAt, regionNote, depth: {done, total}, dataAt, photos: {done, total}, missing: string[]}
+// De a DEPTH_PARALLEL. Una tesela que falla se saltea y se reintenta la próxima vez (lo ya guardado en
+// la caché no se vuelve a pedir). Si falla una tanda entera (sin señal o sin espacio) se corta ahí.
+// prog = {done, total} (done = teselas guardadas). Devuelve el texto para "missing", o null si están todas.
+async function cacheTiles(cachesImpl, name, urls, fetchImpl, prog, onBatch) {
+  let failed = 0, lastError = null
+  try {
+    const cache = await cachesImpl.open(name)
+    for (let i = 0; i < urls.length; i += DEPTH_PARALLEL) {
+      const batch = await Promise.allSettled(urls.slice(i, i + DEPTH_PARALLEL).map((u) => cacheOnce(cache, u, fetchImpl)))
+      const bad = batch.filter((r) => r.status === 'rejected')
+      prog.done += batch.length - bad.length
+      failed += bad.length
+      onBatch()
+      if (bad.length) lastError = bad[0].reason
+      if (bad.length === batch.length) break
+    }
+  } catch (e) {
+    lastError = e
+  }
+  return prog.done < prog.total ? `${prog.done} de ${prog.total} teselas${failed ? `, ${failed} con error` : ''} (${why(lastError)})` : null
+}
+
+// PrepareStatus = {forecastAt, regionAt, regionNote, depth: {done, total}, sat: {done, total}, dataAt, photos: {done, total}, missing: string[]}
 // Se guarda en prepare:<tripId> después de cada paso. onProgress({step, done?, total?}).
 export async function prepareTrip(trip, opts = {}) {
   const sb = opts.pull && opts.photoUrl ? {} : supabaseDeps(trip.id)
@@ -66,6 +102,7 @@ export async function prepareTrip(trip, opts = {}) {
     set = localSet,
     mapBaseUrl = import.meta.env.VITE_MAP_BASE_URL,
     tiles = depthTiles(trip),
+    sat = satTiles(trip),
     now = Date.now,
   } = opts
   const iso = () => new Date(now()).toISOString()
@@ -75,6 +112,7 @@ export async function prepareTrip(trip, opts = {}) {
     regionAt: prev.regionAt ?? null,
     regionNote: null,
     depth: { done: 0, total: tiles.length },
+    sat: { done: 0, total: sat.length },
     dataAt: prev.dataAt ?? null,
     photos: { done: 0, total: 0 },
     missing: [],
@@ -106,27 +144,12 @@ export async function prepareTrip(trip, opts = {}) {
   }
   await save()
 
-  // 3. Profundidad: de a DEPTH_PARALLEL. Una tesela que falla se saltea y se reintenta la próxima vez
-  // (lo ya guardado en la caché no se vuelve a pedir). Si falla una tanda entera (sin señal o sin
-  // espacio) se corta ahí. done = teselas guardadas.
-  let failed = 0, lastError = null
-  try {
-    const cache = await cachesImpl.open(DEPTH_CACHE)
-    for (let i = 0; i < tiles.length; i += DEPTH_PARALLEL) {
-      const batch = await Promise.allSettled(tiles.slice(i, i + DEPTH_PARALLEL).map((t) => cacheOnce(cache, depthTileUrl(t), fetchImpl)))
-      const bad = batch.filter((r) => r.status === 'rejected')
-      s.depth.done += batch.length - bad.length
-      failed += bad.length
-      onProgress({ step: 'depth', ...s.depth })
-      if (bad.length) lastError = bad[0].reason
-      if (bad.length === batch.length) break
-    }
-  } catch (e) {
-    lastError = e
-  }
-  if (s.depth.done < s.depth.total) {
-    s.missing.push(`Profundidad: ${s.depth.done} de ${s.depth.total} teselas${failed ? `, ${failed} con error` : ''} (${why(lastError)})`)
-  }
+  // 3. Profundidad y satélite.
+  const depthMiss = await cacheTiles(cachesImpl, DEPTH_CACHE, tiles.map(depthTileUrl), fetchImpl, s.depth, () => onProgress({ step: 'depth', ...s.depth }))
+  if (depthMiss) s.missing.push(`Profundidad: ${depthMiss}`)
+  await save()
+  const satMiss = await cacheTiles(cachesImpl, SAT_CACHE, sat.map(satTileUrl), fetchImpl, s.sat, () => onProgress({ step: 'sat', ...s.sat }))
+  if (satMiss) s.missing.push(`Satélite: ${satMiss}`)
   await save()
 
   // 4. Datos compartidos: todas las tablas del viaje, y spots y sondeos de la zona.

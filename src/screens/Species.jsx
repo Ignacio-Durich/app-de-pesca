@@ -25,11 +25,14 @@ function Field({ label, children }) {
 
 function SpeciesCard({ s }) {
   const [open, setOpen] = useState(false)
+  const [big, setBig] = useState(false)
   const keep = keepNote(s)
   return (
     <div class="card sp">
       <div class="sp-head">
-        <img class="sp-photo" src={s.photo.src} alt={s.photo.caption} loading="lazy" />
+        <button type="button" class="sp-photo" aria-label={`Agrandar la foto de ${s.name}`} onClick={() => setBig(true)}>
+          <img src={s.photo.src} alt={s.photo.caption} loading="lazy" />
+        </button>
         <div class="sp-sum">
           <h2>{s.name}</h2>
           <p class={keep.release ? 'sp-keep release' : 'sp-keep'}>{keep.text}</p>
@@ -38,6 +41,14 @@ function SpeciesCard({ s }) {
         </div>
         <button type="button" class="round" aria-label={open ? 'Ocultar detalle' : 'Ver detalle'} aria-expanded={open} onClick={() => setOpen(!open)}>i</button>
       </div>
+      {big && (
+        // Pantalla completa: se cierra tocando en cualquier lado (pedido en el feedback del 30/10).
+        <div class="lightbox" role="dialog" aria-label={s.photo.caption} onClick={() => setBig(false)}>
+          <button type="button" class="lightbox-close" aria-label="Cerrar">✕</button>
+          <img src={s.photo.src} alt={s.photo.caption} />
+          <p>{s.name} · <em>{s.photo.caption}</em></p>
+        </div>
+      )}
       {open && (
         <div class="sp-detail">
           {s.scientific && <p class="muted"><em>{s.scientific}</em></p>}

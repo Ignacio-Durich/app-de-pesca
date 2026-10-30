@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { prepareTrip, needsReminder } from '../src/prepare/prepare.js'
+import { prepareTrip, needsReminder, zoneChanged, depthTiles, satTiles } from '../src/prepare/prepare.js'
 import regions from '../src/data/regions.json'
 
 const trip = { id: 't1', lat: -40.5512, lon: -62.2349, start_date: '2026-11-07', end_date: '2026-11-08' }
@@ -39,6 +39,7 @@ function deps(extra = {}) {
     pull: async (table) => (table === 'catches' ? [{ id: 'c1', photo_path: 't1/c1.jpg' }, { id: 'c2', photo_path: null }] : []),
     photoUrl: PHOTO,
     tiles: TILES,
+    sat: [],
     mapBaseUrl: '',
     now: () => Date.parse('2026-11-05T11:30:00Z'),
     ...extra,
@@ -111,6 +112,16 @@ describe('prepareTrip', () => {
     expect(r.calls).toContain('https://maps.test/san-blas.pmtiles')
   })
 
+  it('saves the satellite tiles in sat-v1 and lists the missing ones', async () => {
+    const SAT = [{ z: 13, x: 2681, y: 5086 }, { z: 13, x: 2682, y: 5086 }]
+    const d = deps({ sat: SAT })
+    const r = recorder((u) => u.includes('/13/5086/2682.jpg'))
+    const s = await prepareTrip(trip, { ...d, fetch: r.fetchImpl })
+    expect(r.calls).toContain('https://tiles.maps.eox.at/wmts/1.0.0/s2cloudless-2025_3857/default/g/13/5086/2681.jpg')
+    expect(s.sat).toEqual({ done: 1, total: 2 })
+    expect(s.missing.join(' ')).toMatch(/Satélite: 1 de 2 teselas, 1 con error/)
+  })
+
   it('caches each catch photo once and skips failures', async () => {
     const d = deps()
     const bad = recorder((u) => u.includes('catch-photos'))
@@ -150,5 +161,19 @@ describe('needsReminder', () => {
   })
   it('after the trip ended → false', () => {
     expect(needsReminder(trip, null, '2026-11-09T00:00')).toBe(false)
+  })
+})
+
+describe('zoneChanged', () => {
+  const trip = { lat: -40.55, lon: -62.23 }
+  const full = { depth: { total: depthTiles(trip).length }, sat: { total: satTiles(trip).length } }
+  it('is false when the saved counts match the current zone', () => {
+    expect(zoneChanged(trip, full)).toBe(false)
+  })
+  it('is true for a status saved with the old 80 km zone (60 depth tiles, no satellite)', () => {
+    expect(zoneChanged(trip, { depth: { total: 60 } })).toBe(true)
+  })
+  it('is false before the first preparation', () => {
+    expect(zoneChanged(trip, null)).toBe(false)
   })
 })

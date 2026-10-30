@@ -5,7 +5,7 @@ import { localGet } from '../lib/local.js'
 import { fromInstant } from '../lib/time.js'
 import { dayLabel, dec } from '../forecast/view.js'
 import { regionFor } from '../map/basemap.js'
-import { prepareTrip, needsReminder, statusKey, depthTiles, DEPTH_MB_MEASURED } from '../prepare/prepare.js'
+import { prepareTrip, needsReminder, zoneChanged, statusKey, depthTiles, satTiles, DEPTH_MB_PER_TILE, SAT_MB_ESTIMATED } from '../prepare/prepare.js'
 
 const nowTrip = () => fromInstant(new Date().toISOString())
 const nowLocalIso = () => { const n = nowTrip(); return `${n.date}T${n.time}` }
@@ -19,6 +19,7 @@ const STEP = {
   forecast: () => 'Pronóstico…',
   region: (p) => (p.total ? `Mapa base: ${mb(p.done)} de ${mb(p.total)}` : `Mapa base: ${mb(p.done ?? 0)}`),
   depth: (p) => `Profundidad: ${p.done} de ${p.total} teselas`,
+  sat: (p) => `Satélite: ${p.done} de ${p.total} teselas`,
   data: () => 'Datos del viaje…',
   photos: (p) => `Fotos: ${p.done} de ${p.total}`,
 }
@@ -32,6 +33,7 @@ export function Prepare({ trip, tripId }) {
   const region = regionFor(trip.lat, trip.lon)
   const configured = !!import.meta.env.VITE_MAP_BASE_URL
   const tileCount = useMemo(() => depthTiles(trip).length, [trip.lat, trip.lon])
+  const satCount = useMemo(() => satTiles(trip).length, [trip.lat, trip.lon])
 
   const run = async () => {
     if (prog) return
@@ -64,7 +66,8 @@ export function Prepare({ trip, tripId }) {
               : !region ? 'Mapa base: todavía no hay mapa para este lugar'
               : `Mapa base (${region.name}): ${region.bytes ? mb(region.bytes) : 'tamaño desconocido'}`}
           </li>
-          <li>Profundidad: {tileCount} teselas (en San Blas, unos {dec(DEPTH_MB_MEASURED)} MB)</li>
+          <li>Profundidad: {tileCount} teselas (unos {Math.round(tileCount * DEPTH_MB_PER_TILE)} MB)</li>
+          <li>Satélite: {satCount} teselas (en San Blas, unos {SAT_MB_ESTIMATED} MB)</li>
           <li>Spots, sondeos, checklist, itinerario y capturas, con sus fotos</li>
         </ul>
         <p class="muted small">Conviene hacerlo con wifi.</p>
@@ -83,7 +86,8 @@ export function Prepare({ trip, tripId }) {
 
       {s && (
         <div class="card">
-          {s.missing.length === 0 && s.dataAt && (
+          {zoneChanged(trip, s) && <p class="error">La zona ahora es de 250 km: tocá Actualizar para bajar lo que falta.</p>}
+          {s.missing.length === 0 && s.dataAt && !zoneChanged(trip, s) && (
             <p class="ready">Listo para offline ✓{s.regionNote ? ' (sin mapa base)' : ''} · datos {when(s.dataAt)}</p>
           )}
           <h2>Guardado en el teléfono</h2>
@@ -91,6 +95,7 @@ export function Prepare({ trip, tripId }) {
             <li>{ok(s.forecastAt)} Pronóstico{s.forecastAt && ` · ${when(s.forecastAt)}`}</li>
             <li>{ok(s.regionAt)} Mapa base{s.regionAt ? ` · ${when(s.regionAt)}` : s.regionNote ? ` · ${s.regionNote}` : ''}</li>
             <li>{ok(s.depth.total && s.depth.done === s.depth.total)} Profundidad · {s.depth.done} de {s.depth.total} teselas</li>
+            {s.sat && <li>{ok(s.sat.total && s.sat.done === s.sat.total)} Satélite · {s.sat.done} de {s.sat.total} teselas</li>}
             <li>{ok(s.dataAt)} Spots, sondeos, checklist, itinerario y capturas{s.dataAt && ` · ${when(s.dataAt)}`}</li>
             <li>{ok(s.photos.done === s.photos.total)} Fotos · {s.photos.done} de {s.photos.total}</li>
           </ul>

@@ -42,7 +42,7 @@ export async function pull(client, table, scope) {
   let q = client.from(table).select('*')
   // trips se filtra por su propio id; el resto de lo del viaje por trip_id.
   if (!scope.startsWith('near:')) q = q.eq(table === 'trips' ? 'id' : 'trip_id', scope)
-  // ponytail: spots/sondeos se bajan enteros; el filtro de 50 km es del lado cliente (en la pantalla). Alcanza con pocos datos.
+  // ponytail: spots/sondeos se bajan enteros; el filtro de distancia (SPOTS_RADIUS_KM) es del lado cliente (en la pantalla). Alcanza con pocos datos.
   const { data, error } = await q
   if (error) throw error
   // Un [] del viaje casi siempre es un pedido roto (header/RLS, fila del viaje ausente), no "se borró

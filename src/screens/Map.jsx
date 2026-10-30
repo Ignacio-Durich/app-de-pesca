@@ -10,15 +10,16 @@ import { findExtremes } from '../forecast/tides.js'
 import { dec, dayLabel } from '../forecast/view.js'
 import { conditionsAt } from '../catches/conditions.js'
 import { regionFor, basemapLayer } from '../map/basemap.js'
-import { DEPTH_CACHE } from '../map/tiles.js'
+import { DEPTH_CACHE, SAT_TEMPLATE, SAT_ATTRIBUTION } from '../map/tiles.js'
+import { SAT_ZMAX, DEPTH_RADIUS_KM } from '../prepare/prepare.js'
 import { toDegMin, within, distanceBearing } from '../map/nav.js'
 import { depthAt, soundingDatum, bandColor, BANDS, BAND_M } from '../map/depth.js'
 import { GoTo, distLabel } from '../components/GoTo.jsx'
 import { GpsHelp, MarkForm, SoundingForm, SpotEditor } from '../components/MapForms.jsx'
 
-export const SPOTS_RADIUS_KM = 50 // [diseño] spec §2.3: spots y sondeos a menos de 50 km del lugar
+export const SPOTS_RADIUS_KM = DEPTH_RADIUS_KM // [diseño] spec §2.3: spots y sondeos a menos de 250 km, la zona que se descarga
 const START_ZOOM = 11 // [diseño]
-const MAX_ZOOM = 16 // [diseño] el mapa base llega a z15; un nivel más agrandado
+const MAX_ZOOM = 18 // [diseño] el mapa base llega a z15 (vectorial: más cerca se dibuja igual de nítido); satélite y profundidad se agrandan
 const DEPTH_ATTRIBUTION = 'Profundidad: Terrain Tiles (AWS Open Data)'
 const WARNING = 'Profundidad orientativa, no apta para navegar'
 const LEGEND = `linear-gradient(to right, ${Array.from({ length: BANDS }, (_, b) =>
@@ -27,6 +28,8 @@ const LEGEND = `linear-gradient(to right, ${Array.from({ length: BANDS }, (_, b)
 const nowTrip = () => fromInstant(new Date().toISOString())
 const depthText = (alt) => (alt == null ? 'sin dato' : `${dec(-alt, 1)} m`)
 const m = (v) => `${dec(Number(v), 1)} m`
+const SAT_KEY = 'pesca:satelite' // [diseño] cada teléfono recuerda si dejó el satélite prendido
+const satSaved = () => { try { return localStorage.getItem(SAT_KEY) === '1' } catch { return false } }
 const openDepth = () => (globalThis.caches ? caches.open(DEPTH_CACHE).catch(() => null) : Promise.resolve(null))
 
 // Popup con texto plano: nombres y notas son de otros usuarios, nunca van como HTML.
@@ -47,6 +50,7 @@ export function MapScreen({ trip, me, tripId }) {
   const [ready, setReady] = useState(false)
   const [base, setBase] = useState(null) // null mientras carga | 'on' | 'none'
   const [depthOn, setDepthOn] = useState(true)
+  const [satOn, setSatOn] = useState(satSaved)
   const [pos, setPos] = useState(null)
   const [gpsErr, setGpsErr] = useState(null) // 'denied' | 'unavailable' | 'waiting'
   const [posDepth, setPosDepth] = useState(null)
@@ -84,6 +88,9 @@ export function MapScreen({ trip, me, tripId }) {
       map = L.map(el.current, { maxZoom: MAX_ZOOM }).setView([trip.lat, trip.lon], START_ZOOM)
       map.attributionControl.addAttribution(DEPTH_ATTRIBUTION)
       const g = { L, map, cache, depth: cache && depthLayer(cache) }
+      g.depth?.setZIndex(2)
+      // Arriba del mapa base (0) y debajo de la profundidad (2). Más allá de z13 agranda la z13.
+      g.sat = L.tileLayer(SAT_TEMPLATE, { maxNativeZoom: SAT_ZMAX, maxZoom: MAX_ZOOM, zIndex: 1, crossOrigin: true, attribution: SAT_ATTRIBUTION })
       for (const k of ['spotsG', 'soundG', 'meG']) g[k] = L.layerGroup().addTo(map)
       map.on('click', async (e) => {
         const popup = L.popup().setLatLng(e.latlng).setContent('Profundidad: …').openOn(map)
@@ -105,6 +112,14 @@ export function MapScreen({ trip, me, tripId }) {
       setReady(false)
     }
   }, [trip.lat, trip.lon])
+
+  useEffect(() => {
+    const g = lm.current
+    if (!ready || !g) return
+    if (satOn) g.sat.addTo(g.map)
+    else g.sat.remove()
+    try { localStorage.setItem(SAT_KEY, satOn ? '1' : '0') } catch { /* sin storage: no se recuerda */ }
+  }, [ready, satOn])
 
   useEffect(() => {
     const g = lm.current
@@ -205,6 +220,10 @@ export function MapScreen({ trip, me, tripId }) {
       )}
       {loadErr && <p class="error">No se pudo cargar el mapa. Abrí la app con señal una vez y volvé a esta pantalla.</p>}
       <div ref={el} class="map" />
+      <label class="check fit">
+        <input type="checkbox" checked={satOn} onChange={(e) => setSatOn(e.currentTarget.checked)} />
+        Satélite
+      </label>
       <div class="legend">
         <label class="check fit">
           <input type="checkbox" checked={depthOn} onChange={(e) => setDepthOn(e.currentTarget.checked)} />

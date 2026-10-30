@@ -22,6 +22,12 @@ export default defineConfig({
             handler: 'CacheFirst',
             options: { cacheName: 'depth-v1', matchOptions: { ignoreVary: true } },
           },
+          {
+            // Satélite (src/map/tiles.js SAT_TEMPLATE): lo bajado en "Preparar viaje" y lo que se mira con señal.
+            urlPattern: /^https:\/\/tiles\.maps\.eox\.at\/wmts\//,
+            handler: 'CacheFirst',
+            options: { cacheName: 'sat-v1', matchOptions: { ignoreVary: true } },
+          },
         ],
       },
       manifest: {

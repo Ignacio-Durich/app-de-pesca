@@ -4,6 +4,13 @@ const R = 6371.0088 // km, radio medio terrestre (igual que nav.js)
 export const DEPTH_CACHE = 'depth-v1'
 export const depthTileUrl = ({ z, x, y }) => `https://s3.amazonaws.com/elevation-tiles-prod/terrarium/${z}/${x}/${y}.png`
 
+// Satélite: Sentinel-2 cloudless 2025 de EOX, 10 m por píxel. Licencia CC BY-NC-SA 4.0: uso no comercial
+// libre con atribución (cloudless.eox.at/documentation/license, consultado 30/10/2026). Ojo: va {y}/{x}.
+export const SAT_CACHE = 'sat-v1'
+export const SAT_TEMPLATE = 'https://tiles.maps.eox.at/wmts/1.0.0/s2cloudless-2025_3857/default/g/{z}/{y}/{x}.jpg'
+export const SAT_ATTRIBUTION = 'Sentinel-2 cloudless - <a href="https://s2maps.eu">s2maps.eu</a> by EOX IT Services GmbH (Contains modified Copernicus Sentinel data 2025)'
+export const satTileUrl = ({ z, x, y }) => SAT_TEMPLATE.replace('{z}', z).replace('{y}', y).replace('{x}', x)
+
 export const lon2x = (lon, z) => ((lon + 180) / 360) * 2 ** z
 export const lat2y = (lat, z) => {
   const r = (lat * Math.PI) / 180
