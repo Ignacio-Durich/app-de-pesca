@@ -8,6 +8,9 @@
   --on-brand: #fff;
   --danger: #c62828;
   --field: #fff;
+  --amber: #a15c00;
+  --good: #2e7d32;
+  --night: #8a9aa3;
   color-scheme: light dark;
 }
 @media (prefers-color-scheme: dark) {
@@ -21,6 +24,9 @@
     --on-brand: #06222c;
     --danger: #ef5350;
     --field: #0e171c;
+    --amber: #ffb74d;
+    --good: #66bb6a;
+    --night: #50626b;
   }
 }
 * { box-sizing: border-box; }
@@ -136,3 +142,42 @@ input:not([type='checkbox']) {
   text-decoration: none;
 }
 .tab.on { color: var(--brand); box-shadow: inset 0 3px var(--brand); }
+.small { font-size: .85rem; }
+.chip.on { background: var(--brand); color: var(--on-brand); border-color: var(--brand); }
+.hero p { margin: 0 0 6px; }
+.hero-label { color: var(--muted); font-weight: 600; }
+.hero-time { font-size: 3.5rem; font-weight: 800; line-height: 1; }
+.hero-until { font-size: 1.15rem; }
+.score-chip {
+  display: inline-block;
+  padding: 2px 10px;
+  margin-right: 6px;
+  font-weight: 700;
+  color: #fff;
+  background: var(--good);
+  border-radius: 12px;
+}
+.banner {
+  padding: 12px 16px;
+  color: #fff;
+  background: var(--danger);
+  border-radius: 14px;
+}
+.amber { color: var(--amber); font-weight: 600; }
+details summary { min-height: 44px; display: flex; align-items: center; font-weight: 600; cursor: pointer; }
+.chart { display: block; width: 100%; height: auto; margin: 8px 0; }
+.sc-night { fill: var(--night); opacity: .25; }
+.sc-win { fill: var(--good); opacity: .22; }
+.sc-tide { fill: none; stroke: var(--brand); stroke-width: 2; }
+.sc-ext { fill: var(--brand); }
+.sc-label { fill: var(--muted); font-size: 9px; }
+.sc-bar { fill: var(--brand); opacity: .6; }
+.sc-bar.good { fill: var(--good); opacity: 1; }
+.sc-axis { stroke: var(--line); }
+.table-wrap { overflow-x: auto; }
+.mt { border-collapse: collapse; width: 100%; font-size: .8rem; font-variant-numeric: tabular-nums; }
+.mt th, .mt td { padding: 4px 6px; text-align: right; white-space: nowrap; border-bottom: 1px solid var(--line); }
+.mt th:first-child, .mt td:first-child { text-align: left; }
+.mt tr.unc td { color: var(--amber); }
+.day-info { padding-left: 18px; margin: 8px 0 0; }
+.data-age { margin-top: 12px; font-size: .85rem; }

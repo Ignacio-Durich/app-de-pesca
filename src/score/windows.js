@@ -3,6 +3,7 @@ import { TIDE, SLOT_MIN, WINDOW_MIN, MAX_WINDOWS } from './config.js'
 import { circularMean } from './score.js'
 
 const CARDINALS = ['N', 'NE', 'E', 'SE', 'S', 'SO', 'O', 'NO']
+export const cardinal = (deg) => CARDINALS[Math.round(deg / (360 / CARDINALS.length)) % CARDINALS.length]
 
 function tidePart(run, mode) {
   const ph = run.map((s) => s.phase).filter(Boolean)
@@ -23,7 +24,7 @@ function reason(run, mode) {
   const parts = [tidePart(run, mode)]
   if (winds.length) {
     const kmh = Math.round(winds.reduce((a, b) => a + b, 0) / winds.length)
-    parts.push(`viento ${kmh} km/h` + (dir == null ? '' : ` ${CARDINALS[Math.round(dir / (360 / CARDINALS.length)) % CARDINALS.length]}`))
+    parts.push(`viento ${kmh} km/h` + (dir == null ? '' : ` ${cardinal(dir)}`))
   }
   return parts.filter(Boolean).join(', ')
 }

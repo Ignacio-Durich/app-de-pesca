@@ -1,4 +1,5 @@
 import { Link } from '../nav.jsx'
+import { Forecast } from './Forecast.jsx'
 
 const Placeholder = (title) => () => (
   <section class="card">
@@ -27,7 +28,7 @@ function Mas({ tripId }) {
 
 // Las pantallas de las otras tareas reemplazan su entrada acá. Props: { trip, me, tripId }.
 export const tabScreens = {
-  pronostico: Placeholder('Pronóstico'),
+  pronostico: Forecast,
   mapa: Placeholder('Mapa'),
   capturas: Placeholder('Capturas'),
   mas: Mas,

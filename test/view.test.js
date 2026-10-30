@@ -1,0 +1,71 @@
+import { describe, it, expect } from 'vitest'
+import { tripDays, nowLocal, pickDay, countdown, slotNow, noGoRanges, tideReaches, dayLabel, phaseLabel } from '../src/forecast/view.js'
+
+describe('trip days', () => {
+  it('lists every day of the trip, inclusive', () => {
+    expect(tripDays('2026-10-31', '2026-11-02')).toEqual(['2026-10-31', '2026-11-01', '2026-11-02'])
+  })
+  it('picks today inside the trip, else the first day', () => {
+    const days = ['2026-11-07', '2026-11-08', '2026-11-09']
+    expect(pickDay(days, '2026-11-08')).toBe('2026-11-08')
+    expect(pickDay(days, '2026-10-29')).toBe('2026-11-07')
+  })
+  it('labels a day with weekday and number', () => {
+    expect(dayLabel('2026-11-07')).toBe('sáb 7')
+  })
+})
+
+describe('nowLocal', () => {
+  it('uses the place offset, not the device timezone', () => {
+    expect(nowLocal(Date.parse('2026-11-08T02:30:59Z'), -10800)).toBe('2026-11-07T23:30')
+  })
+})
+
+describe('countdown', () => {
+  const s = '2026-11-08T12:30', e = '2026-11-08T14:45'
+  it('before the window says how long is left', () => {
+    expect(countdown('2026-11-08T10:15', s, e)).toBe('en 2 h 15 min')
+    expect(countdown('2026-11-08T12:00', s, e)).toBe('en 30 min')
+    expect(countdown('2026-11-08T10:30', s, e)).toBe('en 2 h')
+  })
+  it('inside the window says ahora', () => {
+    expect(countdown('2026-11-08T12:30', s, e)).toBe('ahora')
+    expect(countdown('2026-11-08T14:44', s, e)).toBe('ahora')
+  })
+  it('after the window says it passed', () => {
+    expect(countdown('2026-11-08T14:45', s, e)).toBe('ya pasó')
+  })
+})
+
+const slot = (t, extra = {}) => ({ t: `2026-11-08T${t}`, score: 5, ...extra })
+
+describe('slotNow', () => {
+  it('finds the 30 min slot that contains now', () => {
+    const slots = [slot('10:00'), slot('10:30', { score: 8 }), slot('11:00')]
+    expect(slotNow(slots, '2026-11-08T10:59').score).toBe(8)
+    expect(slotNow(slots, '2026-11-08T11:30')).toBeUndefined()
+  })
+})
+
+describe('noGoRanges', () => {
+  it('groups consecutive noGo slots into HH:MM–HH:MM', () => {
+    const slots = ['09:00', '09:30', '10:00', '10:30', '11:00'].map((t, i) => slot(t, { noGo: [0, 1, 0, 1, 1][i] === 1 }))
+    expect(noGoRanges(slots)).toEqual(['09:30–10:00', '10:30–11:30'])
+  })
+})
+
+describe('tideReaches', () => {
+  const f = { lastTideT: '2026-11-07T20:00' }
+  it('is true up to the day of the last tide value', () => {
+    expect(tideReaches(f, '2026-11-07')).toBe(true)
+    expect(tideReaches(f, '2026-11-08')).toBe(false)
+    expect(tideReaches({ lastTideT: null }, '2026-11-07')).toBe(false)
+  })
+})
+
+describe('phaseLabel', () => {
+  it('describes the tide phase and the next extreme', () => {
+    expect(phaseLabel({ rising: true, next: { t: '2026-11-08T14:08', type: 'high' } })).toBe('creciente, pleamar 14:08')
+    expect(phaseLabel(null)).toBeNull()
+  })
+})
