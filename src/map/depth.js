@@ -13,7 +13,10 @@ export const soundingDatum = (measuredM, tideHeightM) =>
 // [diseño] spec §2.3: bandas cada 5 m entre 0 y 60 m; la última junta todo lo de más de 60 m.
 export const BAND_M = 5
 export const BANDS = 13
-export const depthBand = (alt) => (alt >= 0 ? null : Math.min(Math.floor(-alt / BAND_M), BANDS - 1))
+// [diseño] R22: ETOPO1 no tiene detalle en la bahía (spec §2.3); lo que decodifica a menos de 1 m
+// (p. ej. −0,0078) es ruido alrededor de 0 y se trata como sin dato, no como "0,0 m".
+export const MIN_DEPTH_M = 1
+export const depthBand = (alt) => (alt > -MIN_DEPTH_M ? null : Math.min(Math.floor(-alt / BAND_M), BANDS - 1))
 
 // [diseño] de celeste claro (poco profundo) a azul oscuro; alfa para que se vea el mapa base abajo.
 const SHALLOW = [190, 230, 245], DEEP = [8, 48, 107]
@@ -66,7 +69,7 @@ export function cachedTile(cache, url, decode = decodePng) {
   return p
 }
 
-// Altura (m, negativa) en el punto según la tesela z12 cacheada. null si no está o da ≥ 0:
+// Altura (m, negativa) en el punto según la tesela z12 cacheada. null si no está o no llega a MIN_DEPTH_M:
 // en la bahía ETOPO1 da 0 o valores de tierra (spec §2.3) y la pantalla muestra "sin dato".
 export async function depthAt(lat, lon, cache, decode) {
   const t = tilePixel(lat, lon, DEPTH_ZMAX)
@@ -74,5 +77,5 @@ export async function depthAt(lat, lon, cache, decode) {
   if (!img) return null
   const { px, py } = tilePixel(lat, lon, DEPTH_ZMAX, img.width)
   const alt = altAt(img, px, py)
-  return alt < 0 ? alt : null
+  return alt <= -MIN_DEPTH_M ? alt : null
 }

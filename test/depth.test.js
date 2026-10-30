@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { decodeTerrarium, soundingDatum, depthBand, bandColor, tilePixel, depthAt, BANDS } from '../src/map/depth.js'
+import { decodeTerrarium, soundingDatum, depthBand, bandColor, tilePixel, depthAt, BANDS, MIN_DEPTH_M } from '../src/map/depth.js'
 import { within } from '../src/map/nav.js'
 import { depthTileUrl } from '../src/map/tiles.js'
 
@@ -32,6 +32,11 @@ describe('depthBand / bandColor', () => {
     expect(depthBand(-59.9)).toBe(11)
     expect(depthBand(-60)).toBe(12)
     expect(depthBand(-300)).toBe(12)
+  })
+  it(`menos de MIN_DEPTH_M (${MIN_DEPTH_M} m) es ruido de ETOPO1 en la bahía: sin banda (R22)`, () => {
+    expect(depthBand(-0.0078)).toBeNull()
+    expect(depthBand(-0.5)).toBeNull()
+    expect(depthBand(-1.5)).toBe(0)
   })
   it('un color distinto por banda', () => {
     const all = Array.from({ length: BANDS }, (_, b) => bandColor(b).join())
@@ -66,6 +71,11 @@ describe('depthAt', () => {
   it('tierra o 0 m: null', async () => {
     expect(await depthAt(LAT, LON, fakeCache(LAT, LON), solid([128, 0, 0]))).toBeNull()
     expect(await depthAt(LAT, LON, fakeCache(LAT, LON), solid([128, 6, 0]))).toBeNull()
+  })
+  it('entre −1 y 0 m (ruido de la bahía): null; −1,5 m vale (R22)', async () => {
+    expect(await depthAt(LAT, LON, fakeCache(LAT, LON), solid([127, 255, 254]))).toBeNull() // −0,0078
+    expect(await depthAt(LAT, LON, fakeCache(LAT, LON), solid([127, 255, 128]))).toBeNull() // −0,5
+    expect(await depthAt(LAT, LON, fakeCache(LAT, LON), solid([127, 254, 128]))).toBe(-1.5)
   })
   it('sin la tesela en la caché: null, sin red', async () => {
     expect(await depthAt(LAT, LON, fakeCache(0, 0), solid([127, 219, 26]))).toBeNull()

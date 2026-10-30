@@ -54,6 +54,7 @@ export function MapScreen({ trip, me, tripId }) {
   const [mode, setMode] = useState(null) // 'mark' | 'sound' | 'edit' | 'go'
   const [at, setAt] = useState(null) // posición tomada al abrir "Marcar punto" o "Cargar sondeo"
   const [msg, setMsg] = useState(null)
+  const [loadErr, setLoadErr] = useState(false)
   const sel = spots.find((s) => s.id === selId)
   const probe = (lat, lon) => (lm.current?.cache ? depthAt(lat, lon, lm.current.cache) : Promise.resolve(null))
 
@@ -72,10 +73,13 @@ export function MapScreen({ trip, me, tripId }) {
   useEffect(() => {
     let alive = true, map
     ;(async () => {
-      const [{ default: L }, { depthLayer }, cache] = await Promise.all([
+      const mods = await Promise.all([
         import('leaflet'), import('../map/depthLayer.js'), openDepth(), import('leaflet/dist/leaflet.css'),
-      ])
+      ]).catch(() => null)
       if (!alive) return
+      // Sin el código del mapa (app sin cachear y sin señal): aviso en vez de un mapa en blanco.
+      if (!mods) return setLoadErr(true)
+      const [{ default: L }, { depthLayer }, cache] = mods
       window.L ??= L
       map = L.map(el.current, { maxZoom: MAX_ZOOM }).setView([trip.lat, trip.lon], START_ZOOM)
       map.attributionControl.addAttribution(DEPTH_ATTRIBUTION)
@@ -104,13 +108,13 @@ export function MapScreen({ trip, me, tripId }) {
 
   useEffect(() => {
     const g = lm.current
-    if (!ready || !g.depth) return
+    if (!ready || !g?.depth) return
     if (depthOn) g.depth.addTo(g.map)
     else g.depth.remove()
   }, [ready, depthOn])
 
   useEffect(() => {
-    if (!ready) return
+    if (!ready || !lm.current) return
     const { L, spotsG } = lm.current
     spotsG.clearLayers()
     for (const s of spots) {
@@ -123,7 +127,7 @@ export function MapScreen({ trip, me, tripId }) {
 
   // Sondeos numerados por orden de carga (spec §2.3).
   useEffect(() => {
-    if (!ready) return
+    if (!ready || !lm.current) return
     const { L, soundG } = lm.current
     soundG.clearLayers()
     soundings.forEach((s, i) => {
@@ -140,7 +144,7 @@ export function MapScreen({ trip, me, tripId }) {
   }, [ready, soundings])
 
   useEffect(() => {
-    if (!ready) return
+    if (!ready || !lm.current) return
     const { L, meG } = lm.current
     meG.clearLayers()
     if (!pos) return
@@ -199,6 +203,7 @@ export function MapScreen({ trip, me, tripId }) {
           Mapa base no descargado — usá <Link href={`/t/${tripId}/preparar`}>Preparar viaje</Link>.
         </p>
       )}
+      {loadErr && <p class="error">No se pudo cargar el mapa. Abrí la app con señal una vez y volvé a esta pantalla.</p>}
       <div ref={el} class="map" />
       <div class="legend">
         <label class="check fit">

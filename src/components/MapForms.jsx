@@ -5,6 +5,12 @@ import { toDegMin } from '../map/nav.js'
 const TIDES = ['creciente', 'pleamar', 'bajante', 'bajamar']
 const numOrNull = (v) => (v === '' ? null : Number(v))
 const val = (set) => (e) => set(e.currentTarget.value)
+// `required` acepta solo espacios: se valida el nombre ya recortado (el error lo muestra useSubmit).
+const nameOf = (name) => {
+  const n = name.trim()
+  if (!n) throw new Error('Poné un nombre.')
+  return n
+}
 
 // Mismo texto que Emergencias (spec §5): sin coordenadas no se guarda ningún punto.
 export function GpsHelp({ err, onClose }) {
@@ -65,7 +71,7 @@ export function MarkForm({ at, defaultName, onSave, onCancel }) {
   const [depth, setDepth] = useState('')
   const { busy, error, submit } = useSubmit(onSave)
   return (
-    <form class="card stack" onSubmit={submit(() => ({ name: name.trim(), depth_m: numOrNull(depth) }))}>
+    <form class="card stack" onSubmit={submit(() => ({ name: nameOf(name), depth_m: numOrNull(depth) }))}>
       <h2>Marcar punto</h2>
       <p class="muted small">{toDegMin(at.latitude, at.longitude)}</p>
       <label>Nombre <input value={name} onInput={val(setName)} required /></label>
@@ -100,7 +106,7 @@ export function SpotEditor({ spot, onSave, onCancel }) {
   const [notes, setNotes] = useState(spot.notes ?? '')
   const { busy, error, submit } = useSubmit(onSave)
   const fields = () => ({
-    name: name.trim(),
+    name: nameOf(name),
     species: species.split(',').map((s) => s.trim()).filter(Boolean),
     best_tide: tide || null,
     depth_m: numOrNull(depth),
