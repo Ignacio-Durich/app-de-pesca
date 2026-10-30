@@ -154,6 +154,7 @@ Todas responden con CORS abierto (`Access-Control-Allow-Origin: *`), verificado 
   - **Météo-France** (`meteofrance_seamless`): devolvió vacío para San Blas.
 - **Mapa base (offline):** Protomaps, un mapa de OpenStreetMap en formato `.pmtiles` (licencia ODbL, con atribución a OpenStreetMap). Hay un build planetario con zoom 0–15.
   - **Regiones:** se recorta una región con `pmtiles extract <build> <salida>.pmtiles --bbox=<minlon,minlat,maxlon,maxlat>` (también funciona con `--maxzoom`) y se sube a Cloudflare R2. Protomaps desaconseja enlazar directo a su build; R2 tiene 10 GB gratis por mes y no cobra egreso.
+    - **Medido el 30/10:** el recorte de San Blas (build 20261030, zoom 0–15) pesa **1.184.103 bytes (1,2 MB)**. Con ese tamaño no hace falta R2: el archivo va junto a la app, en `public/maps/san-blas.pmtiles` (mismo origen, sin CORS), y se publica con la app en Cloudflare Pages. R2 queda para regiones grandes; en esta cuenta hay que activarlo desde el panel de Cloudflare.
   - **En el teléfono:** "Preparar viaje" descarga el `.pmtiles` de la región entero y lo guarda en IndexedDB. `pmtiles` lo lee con `FileSource(new File([blob], …))`, así el mapa funciona sin internet y sin precargar teselas sueltas.
   - **Regiones iniciales:** Bahía San Blas, y después el Paraná de las Palmas entre Zárate y Lima.
   - **Límite conocido:** un lugar nuevo necesita correr el script de recorte una vez. Cuando se use seguido en lugares nuevos, conviene una región provincial más grande.

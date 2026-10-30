@@ -135,3 +135,4 @@ Task 15: fix round 1 (R24 verbatim pejerrey, rods p.3/p.10 quoted, all licence t
 Task 15: minor (deferred): "Devolución: no verificado" on P.V./P.D. species could read oddly (no release rule beyond sizes)
 Task 15: complete (commits 3f571ef..2bbac28)
 Final whole-branch review: dispatched (opus)
+- Ruling R25 (T13 Step 1, 30/10): San Blas extract measured 1,184,103 bytes (build 20261030, z0–15). R2 needs enabling in the dashboard (wrangler error 10042), so the file is served same-origin from public/maps/ (gitignore exception), VITE_MAP_BASE_URL=/maps in committed .env and .env.local; regions.json bytes filled; spec §3.1 updated. Controller verified: Prepare shows 1,2 MB, stores it, 'Listo para offline ✓', map renders Protomaps base with attribution, no console errors. — cost: none; R2 remains for larger regions.
