@@ -7,6 +7,7 @@ import { Catches } from './Catches.jsx'
 import { Prepare } from './Prepare.jsx'
 import { MapScreen } from './Map.jsx'
 import { Species } from './Species.jsx'
+import { Feedback } from './Feedback.jsx'
 
 function Mas({ tripId }) {
   const link = `${location.origin}/t/${tripId}`
@@ -37,6 +38,7 @@ export const tabScreens = {
   especies: Species,
   emergencias: Emergency,
   preparar: Prepare,
+  comentarios: Feedback,
 }
 
 export const TABS = [
@@ -50,4 +52,5 @@ export const MAS_ITEMS = [
   ['itinerario', 'Itinerario'],
   ['especies', 'Especies'],
   ['preparar', 'Preparar viaje'],
+  ['comentarios', 'Comentarios y errores'],
 ]

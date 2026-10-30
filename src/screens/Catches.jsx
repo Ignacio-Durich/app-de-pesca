@@ -140,8 +140,8 @@ export function Catches({ trip, me, tripId }) {
           <input type="checkbox" checked={released} onChange={(e) => setReleased(e.currentTarget.checked)} />
           Devuelta al agua
         </label>
-        <label>
-          Foto (opcional)
+        <label class="btn ghost file">
+          {file ? `Foto elegida ✓ (tocá para cambiarla)` : 'Agregar foto (opcional)'}
           <input key={fileKey} type="file" accept="image/*" onChange={(e) => setFile(e.currentTarget.files[0] ?? null)} />
         </label>
         <div class="row">

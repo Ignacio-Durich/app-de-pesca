@@ -8,7 +8,7 @@ export default defineConfig({
     VitePWA({
       registerType: 'autoUpdate',
       workbox: {
-        globPatterns: ['**/*.{js,css,html,json,svg,png}'],
+        globPatterns: ['**/*.{js,css,html,json,svg,png,jpg}'],
         // Lo que guarda "Preparar viaje" (src/prepare/prepare.js) se sirve desde la Cache API sin señal.
         runtimeCaching: [
           {

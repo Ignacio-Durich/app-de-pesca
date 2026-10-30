@@ -96,6 +96,9 @@ export function TripShell({ id, tab = 'pronostico' }) {
           <button class="link" onClick={() => setPicking(true)}>Soy {me}</button>
         </div>
         <Pending />
+        {tab !== 'comentarios' && (
+          <Link class="btn bug" href={`/t/${id}/comentarios?desde=${tab}`} aria-label="Avisar un error o dejar un comentario">🐞</Link>
+        )}
         <Link class="btn sos" href={`/t/${id}/emergencias`} aria-label="Emergencias">SOS</Link>
       </header>
       <main class="page">

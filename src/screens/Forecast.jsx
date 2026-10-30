@@ -136,6 +136,12 @@ function DayView({ trip, forecast: f, now, catches }) {
       <details class="card">
         <summary>Ver hora por hora</summary>
         {hasTide && <ScoreChart day={day} hours={hours} extremes={dayExt} windows={windows} slots={slots} sun={sun} catches={catchTimes} />}
+        {hasTide && (
+          <p class="muted small">
+            Línea: altura del mar sobre el nivel medio, con la hora y altura de cada pleamar y bajamar. Barras: puntaje de
+            cada hora (verdes: {WINDOW_MIN} o más). Franja verde: ventana para tener los anzuelos al agua. Gris: noche.
+          </p>
+        )}
         <ModelTable hours={hours} slots={slots} mode={mode} />
         <ul class="day-info">
           <li>Sol: sale {sun.sunrise ? hhmm(sun.sunrise) : '–'}, se pone {sun.sunset ? hhmm(sun.sunset) : '–'}</li>

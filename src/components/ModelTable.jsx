@@ -34,7 +34,13 @@ export function ModelTable({ hours, slots, mode }) {
           })}
         </tbody>
       </table>
-      <p class="muted small">Viento en km/h. <strong>?</strong> = pronóstico incierto: los modelos difieren en más de {UNCERTAIN_KMH} km/h.</p>
+      <ul class="muted small keys">
+        <li><strong>ECMWF, GFS, ICON:</strong> viento medio en km/h según tres modelos del tiempo: el europeo (ECMWF), el de EE.UU. (GFS, de NOAA) y el alemán (ICON, del DWD).</li>
+        <li><strong>Ráf.:</strong> ráfagas, en km/h. <strong>Dir.:</strong> de dónde viene el viento (N = del norte).</li>
+        <li><strong>Lluvia:</strong> probabilidad de lluvia. <strong>°C:</strong> temperatura del aire. <strong>hPa:</strong> presión.{boat && <> <strong>Ola:</strong> altura de las olas.</>}</li>
+        <li><strong>?</strong> (en naranja): pronóstico incierto, los modelos difieren en más de {UNCERTAIN_KMH} km/h.</li>
+        <li><strong>–</strong>: ese modelo todavía no llega a ese día. ICON pronostica unos 7 días; se completa a medida que se acerca la fecha.</li>
+      </ul>
     </div>
   )
 }

@@ -31,7 +31,14 @@
         "title": "Llompart 2011, tesis doctoral UNLP (especies de la pesca deportiva en Bahía San Blas)",
         "url": "https://sedici.unlp.edu.ar/handle/10915/34280"
       }
-    ]
+    ],
+    "photo": {
+      "src": "/species/pescadilla.jpg",
+      "caption": "Cynoscion guatucupa",
+      "author": "Valentín Alfano",
+      "license": "CC BY 4.0",
+      "page": "https://commons.wikimedia.org/wiki/File:Cynoscion_guatucupa_252721333.jpg"
+    }
   },
   {
     "id": "corvina-rubia",
@@ -65,7 +72,14 @@
         "title": "Llompart 2011, tesis doctoral UNLP (especies de la pesca deportiva en Bahía San Blas)",
         "url": "https://sedici.unlp.edu.ar/handle/10915/34280"
       }
-    ]
+    ],
+    "photo": {
+      "src": "/species/corvina-rubia.jpg",
+      "caption": "Micropogonias furnieri",
+      "author": "Cláudio D. Timm",
+      "license": "CC BY 2.0",
+      "page": "https://commons.wikimedia.org/wiki/File:Micropogonias_furnieri.jpg"
+    }
   },
   {
     "id": "pejerrey",
@@ -95,7 +109,14 @@
         "title": "Llompart 2011, tesis doctoral UNLP (especies de la pesca deportiva en Bahía San Blas)",
         "url": "https://sedici.unlp.edu.ar/handle/10915/34280"
       }
-    ]
+    ],
+    "photo": {
+      "src": "/species/pejerrey.jpg",
+      "caption": "Odontesthes argentinensis",
+      "author": "CHUCAO",
+      "license": "CC BY-SA 3.0",
+      "page": "https://commons.wikimedia.org/wiki/File:Odontesthes_argentinensis_Punta_Rasa.JPG"
+    }
   },
   {
     "id": "lenguado",
@@ -125,7 +146,14 @@
         "title": "Llompart 2011, tesis doctoral UNLP (especies de la pesca deportiva en Bahía San Blas)",
         "url": "https://sedici.unlp.edu.ar/handle/10915/34280"
       }
-    ]
+    ],
+    "photo": {
+      "src": "/species/lenguado.jpg",
+      "caption": "Paralichthys orbignyanus (ilustración)",
+      "author": "Paul Louis Oudart",
+      "license": "Public domain",
+      "page": "https://commons.wikimedia.org/wiki/File:Paralichthys_orbignyanus.jpg"
+    }
   },
   {
     "id": "gatuzo",
@@ -159,7 +187,14 @@
         "title": "Llompart 2011, tesis doctoral UNLP (especies de la pesca deportiva en Bahía San Blas)",
         "url": "https://sedici.unlp.edu.ar/handle/10915/34280"
       }
-    ]
+    ],
+    "photo": {
+      "src": "/species/gatuzo.jpg",
+      "caption": "Mustelus schmitti",
+      "author": "Ezequiel Vera",
+      "license": "CC BY 4.0",
+      "page": "https://commons.wikimedia.org/wiki/File:Narrownose_smooth-hound.jpg"
+    }
   },
   {
     "id": "rayas",
@@ -193,7 +228,14 @@
         "title": "Llompart 2011, tesis doctoral UNLP (especies de la pesca deportiva en Bahía San Blas)",
         "url": "https://sedici.unlp.edu.ar/handle/10915/34280"
       }
-    ]
+    ],
+    "photo": {
+      "src": "/species/rayas.jpg",
+      "caption": "Sympterygia bonapartii, una de las rayas",
+      "author": "Diego Almendras G.",
+      "license": "CC BY 4.0",
+      "page": "https://commons.wikimedia.org/wiki/File:Sympterygia_bonapartii_280507153.jpg"
+    }
   },
   {
     "id": "cazon",
@@ -223,7 +265,14 @@
         "title": "Disposición 217/07 (normas.gba.gob.ar), art. 6 y 14",
         "url": "https://normas.gba.gob.ar/documentos/0nvkq6iM.html"
       }
-    ]
+    ],
+    "photo": {
+      "src": "/species/cazon.jpg",
+      "caption": "Galeorhinus galeus (ilustración)",
+      "author": "G. Brown Goode (1887), NOAA",
+      "license": "Public domain",
+      "page": "https://commons.wikimedia.org/wiki/File:Galeorhinus_galeus.jpg"
+    }
   },
   {
     "id": "pez-elefante",
@@ -253,6 +302,13 @@
         "title": "Disposición 217/07 (normas.gba.gob.ar), art. 10",
         "url": "https://normas.gba.gob.ar/documentos/0nvkq6iM.html"
       }
-    ]
+    ],
+    "photo": {
+      "src": "/species/pez-elefante.jpg",
+      "caption": "Callorhinchus callorhynchus",
+      "author": "Tambja",
+      "license": "CC BY-SA 3.0",
+      "page": "https://commons.wikimedia.org/wiki/File:Callorhinchus_callorhynchus.JPG"
+    }
   }
 ]
