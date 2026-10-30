@@ -246,7 +246,10 @@ select {
 .map.leaflet-container { background: #e9e5dc; } /* tono tierra: sin mapa base, el agua se distingue por la capa */
 .sounding-pin { box-sizing: border-box; display: flex; align-items: center; justify-content: center; border-radius: 50%; background: #fff; color: #0b5c7a; border: 2px solid #0b5c7a; font: 700 12px/1 system-ui, sans-serif; }
 .legend { display: flex; align-items: center; gap: 8px; font-size: .85rem; color: var(--muted); }
-.legend-bar { flex: 1; height: 10px; border-radius: 4px; }
+.depth-scale { display: grid; row-gap: 2px; background: #fff; border-radius: 6px; padding: 4px 4px 2px; }
+.depth-scale span { height: 16px; border-right: 1px solid rgba(0, 30, 60, .9); }
+.depth-scale span:last-of-type { border-right: 0; }
+.depth-scale small { font-size: .7rem; color: #334; white-space: nowrap; }
 .check.fit { flex: 0 0 auto; }
 .goto-main { font-size: 1.5rem; font-weight: 700; margin: 0; }
 .goto-arrow { font-size: 4rem; line-height: 1; width: 4rem; margin: 8px auto; text-align: center; transition: transform .2s; }

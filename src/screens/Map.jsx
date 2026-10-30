@@ -13,7 +13,7 @@ import { regionFor, basemapLayer } from '../map/basemap.js'
 import { DEPTH_CACHE, SAT_TEMPLATE, SAT_ATTRIBUTION } from '../map/tiles.js'
 import { SAT_ZMAX, DEPTH_RADIUS_KM } from '../prepare/prepare.js'
 import { toDegMin, within, distanceBearing } from '../map/nav.js'
-import { depthAt, soundingDatum, bandColor, BANDS, BAND_M } from '../map/depth.js'
+import { depthAt, soundingDatum, bandColor, BANDS, BAND_M, BAND_ALPHA } from '../map/depth.js'
 import { GoTo, distLabel } from '../components/GoTo.jsx'
 import { GpsHelp, MarkForm, SoundingForm, SpotEditor } from '../components/MapForms.jsx'
 
@@ -22,8 +22,12 @@ const START_ZOOM = 11 // [diseño]
 const MAX_ZOOM = 18 // [diseño] el mapa base llega a z15 (vectorial: más cerca se dibuja igual de nítido); satélite y profundidad se agrandan
 const DEPTH_ATTRIBUTION = 'Profundidad: Terrain Tiles (AWS Open Data)'
 const WARNING = 'Profundidad orientativa, no apta para navegar'
-const LEGEND = `linear-gradient(to right, ${Array.from({ length: BANDS }, (_, b) =>
-  `rgb(${bandColor(b)}) ${(b * 100) / BANDS}% ${((b + 1) * 100) / BANDS}%`).join(', ')})`
+// Leyenda: un bloque por banda, con el mismo color y transparencia que el mapa; la profundidad cada 10 m.
+const LEGEND = Array.from({ length: BANDS }, (_, b) => ({
+  color: `rgba(${bandColor(b)}, ${BAND_ALPHA / 255})`,
+  range: b === BANDS - 1 ? `más de ${b * BAND_M} m` : `${b * BAND_M} a ${(b + 1) * BAND_M} m`,
+  tick: b % 2 ? '' : b === BANDS - 1 ? `${b * BAND_M}+` : `${b * BAND_M}`,
+}))
 
 const nowTrip = () => fromInstant(new Date().toISOString())
 const depthText = (alt) => (alt == null ? 'sin dato' : `${dec(-alt, 1)} m`)
@@ -229,8 +233,13 @@ export function MapScreen({ trip, me, tripId }) {
           <input type="checkbox" checked={depthOn} onChange={(e) => setDepthOn(e.currentTarget.checked)} />
           Profundidad
         </label>
-        <span>0</span><div class="legend-bar" style={{ background: LEGEND }} /><span>{BAND_M * (BANDS - 1)}+ m</span>
+        <span>metros</span>
       </div>
+      <div class="depth-scale" style={{ gridTemplateColumns: `repeat(${BANDS}, 1fr)` }} role="img" aria-label={`Colores de profundidad: ${LEGEND.map((l) => l.range).join(', ')}`}>
+        {LEGEND.map((l) => <span key={l.range} title={l.range} style={{ background: l.color }} />)}
+        {LEGEND.map((l) => <small key={`t${l.range}`}>{l.tick}</small>)}
+      </div>
+      <p class="muted small">Cada color son {BAND_M} m más de agua; la línea oscura marca cada cambio.</p>
       <p class="muted small">Tocá el mapa para ver la profundidad de ese punto. Sin la zona descargada: "sin dato".</p>
 
       <div class="card">

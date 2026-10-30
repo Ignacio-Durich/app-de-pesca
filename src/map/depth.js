@@ -18,11 +18,16 @@ export const BANDS = 13
 export const MIN_DEPTH_M = 1
 export const depthBand = (alt) => (alt > -MIN_DEPTH_M ? null : Math.min(Math.floor(-alt / BAND_M), BANDS - 1))
 
-// [diseño] de celeste claro (poco profundo) a azul oscuro; alfa para que se vea el mapa base abajo.
-const SHALLOW = [190, 230, 245], DEEP = [8, 48, 107]
-export const BAND_ALPHA = 150
+// [diseño] escala YlGnBu de ColorBrewer (9 clases, colorbrewer2.org): de amarillo verdoso (poco profundo) a azul
+// oscuro, cambiando de tono para que bandas vecinas se distingan; las 13 bandas se interpolan entre esos 9 colores.
+// Alfa para que se vea el mapa base abajo.
+const YLGNBU = [[255, 255, 217], [237, 248, 177], [199, 233, 180], [127, 205, 187], [65, 182, 196], [29, 145, 192], [34, 94, 168], [37, 52, 148], [8, 29, 88]]
+export const BAND_ALPHA = 180
 export const BORDER = [0, 30, 60, 230]
-export const bandColor = (b) => SHALLOW.map((c, i) => Math.round(c + ((DEEP[i] - c) * b) / (BANDS - 1)))
+export function bandColor(b) {
+  const f = (b * (YLGNBU.length - 1)) / (BANDS - 1), i = Math.min(Math.floor(f), YLGNBU.length - 2), t = f - i
+  return YLGNBU[i].map((c, k) => Math.round(c + (YLGNBU[i + 1][k] - c) * t))
+}
 
 // Tesela de zoom z que contiene el punto y el píxel dentro de ella (teselas de `size` px).
 export function tilePixel(lat, lon, z, size = 256) {
