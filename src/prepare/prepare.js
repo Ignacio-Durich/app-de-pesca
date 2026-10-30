@@ -21,6 +21,10 @@ export const PHOTO_CACHE = 'photos-v1'
 // Medido el 30/10 en la prueba local (San Blas, 80 km, z8–12): 710 teselas = 13,7 MB en depth-v1.
 export const DEPTH_MB_MEASURED = 13.7
 
+// [diseño] tiempo máximo por pedido: uno colgado no deja "Preparando…" para siempre.
+export const FETCH_TIMEOUT_MS = 20000 // teselas, fotos
+export const STEP_TIMEOUT_MS = 30000 // pronóstico y cada tabla del pull (supabase-js no recibe signal acá)
+
 const TRIP_TABLES = ['trips', 'checklist_items', 'itinerary_items', 'catches']
 const NEAR_TABLES = ['spots', 'soundings']
 
@@ -36,9 +40,14 @@ function supabaseDeps(tripId) {
   }
 }
 
+// ponytail: la carrera no cancela el pedido de abajo; solo deja de esperarlo.
+const withTimeout = (p, ms) =>
+  Promise.race([p, new Promise((_, fail) => setTimeout(() => fail(new Error('timeout')), ms))])
+const timeoutSignal = (ms) => AbortSignal.timeout?.(ms) // Safari < 16 no lo tiene: sin límite
+
 async function cacheOnce(cache, url, fetchImpl) {
   if (await cache.match(url)) return
-  const res = await fetchImpl(url)
+  const res = await fetchImpl(url, { signal: timeoutSignal(FETCH_TIMEOUT_MS) })
   if (!res.ok) throw new Error(`HTTP ${res.status}`)
   await cache.put(url, res)
 }
@@ -75,7 +84,7 @@ export async function prepareTrip(trip, opts = {}) {
 
   // 1. Pronóstico: getForecast usa la copia local si tiene menos de 1 h.
   onProgress({ step: 'forecast' })
-  const f = await getForecast(trip, { now: now(), fetchImpl })
+  const f = await withTimeout(getForecast(trip, { now: now(), fetchImpl }), STEP_TIMEOUT_MS).catch((e) => ({ error: e.message }))
   if (f.forecast) s.forecastAt = f.forecast.fetchedAt
   if (f.error || !f.forecast) s.missing.push('Pronóstico: sin señal o se cortó')
   await save()
@@ -89,7 +98,7 @@ export async function prepareTrip(trip, opts = {}) {
     s.regionAt = null
     try {
       onProgress({ step: 'region', done: 0, total: region.bytes ?? 0 })
-      await downloadRegion(region, (p) => onProgress({ step: 'region', ...p }), { fetch: fetchImpl, set, baseUrl: mapBaseUrl })
+      await downloadRegion(region, (p) => onProgress({ step: 'region', ...p }), { fetch: fetchImpl, set, baseUrl: mapBaseUrl, stallMs: FETCH_TIMEOUT_MS })
       s.regionAt = iso()
     } catch (e) {
       s.missing.push(`Mapa base: ${why(e)}`)
@@ -97,19 +106,26 @@ export async function prepareTrip(trip, opts = {}) {
   }
   await save()
 
-  // 3. Profundidad: de a DEPTH_PARALLEL; si una tanda tiene una falla se corta ahí y la próxima vez
-  // sigue (lo ya guardado en la caché no se vuelve a pedir). done = teselas guardadas.
+  // 3. Profundidad: de a DEPTH_PARALLEL. Una tesela que falla se saltea y se reintenta la próxima vez
+  // (lo ya guardado en la caché no se vuelve a pedir). Si falla una tanda entera (sin señal o sin
+  // espacio) se corta ahí. done = teselas guardadas.
+  let failed = 0, lastError = null
   try {
     const cache = await cachesImpl.open(DEPTH_CACHE)
     for (let i = 0; i < tiles.length; i += DEPTH_PARALLEL) {
       const batch = await Promise.allSettled(tiles.slice(i, i + DEPTH_PARALLEL).map((t) => cacheOnce(cache, depthTileUrl(t), fetchImpl)))
-      s.depth.done += batch.filter((r) => r.status === 'fulfilled').length
+      const bad = batch.filter((r) => r.status === 'rejected')
+      s.depth.done += batch.length - bad.length
+      failed += bad.length
       onProgress({ step: 'depth', ...s.depth })
-      const failed = batch.find((r) => r.status === 'rejected')
-      if (failed) throw failed.reason
+      if (bad.length) lastError = bad[0].reason
+      if (bad.length === batch.length) break
     }
   } catch (e) {
-    s.missing.push(`Profundidad: ${s.depth.done} de ${s.depth.total} teselas (${why(e)})`)
+    lastError = e
+  }
+  if (s.depth.done < s.depth.total) {
+    s.missing.push(`Profundidad: ${s.depth.done} de ${s.depth.total} teselas${failed ? `, ${failed} con error` : ''} (${why(lastError)})`)
   }
   await save()
 
@@ -117,8 +133,8 @@ export async function prepareTrip(trip, opts = {}) {
   onProgress({ step: 'data' })
   const scope = nearScope(trip.lat, trip.lon)
   const pulled = await Promise.allSettled([
-    ...TRIP_TABLES.map((t) => pull(t, trip.id)),
-    ...NEAR_TABLES.map((t) => pull(t, scope)),
+    ...TRIP_TABLES.map((t) => withTimeout(pull(t, trip.id), STEP_TIMEOUT_MS)),
+    ...NEAR_TABLES.map((t) => withTimeout(pull(t, scope), STEP_TIMEOUT_MS)),
   ])
   if (pulled.every((r) => r.status === 'fulfilled')) s.dataAt = iso()
   else s.missing.push('Datos del viaje: sin señal o se cortó')

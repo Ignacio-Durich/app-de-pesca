@@ -13,22 +13,32 @@ export const regionFor = (lat, lon) =>
   regions.find(({ bbox: [w, s, e, n] }) => lon >= w && lon <= e && lat >= s && lat <= n) ?? null
 
 // ponytail: si se corta a mitad, la próxima vez baja el archivo de nuevo; usar Range si las regiones crecen.
-export async function downloadRegion(region, onProgress = () => {}, { fetch: fetchImpl = fetch, set = localSet, baseUrl } = {}) {
-  const res = await fetchImpl(regionUrl(region, baseUrl))
-  if (!res.ok) throw new Error(`HTTP ${res.status}`)
-  if (!res.body) return set(regionKey(region), await res.blob())
-  const total = Number(res.headers.get('content-length')) || region.bytes || 0
-  const parts = []
-  let done = 0
-  const reader = res.body.getReader()
-  for (;;) {
-    const { done: end, value } = await reader.read()
-    if (end) break
-    parts.push(value)
-    done += value.length
-    onProgress({ done, total })
+// stallMs: se aborta si pasa ese tiempo sin recibir nada (el archivo es grande: no hay límite total).
+export async function downloadRegion(region, onProgress = () => {}, { fetch: fetchImpl = fetch, set = localSet, baseUrl, stallMs = 20000 } = {}) {
+  const ctrl = new AbortController()
+  let timer
+  const alive = () => { clearTimeout(timer); timer = setTimeout(() => ctrl.abort(new Error('timeout')), stallMs) }
+  try {
+    alive()
+    const res = await fetchImpl(regionUrl(region, baseUrl), { signal: ctrl.signal })
+    if (!res.ok) throw new Error(`HTTP ${res.status}`)
+    if (!res.body) return await set(regionKey(region), await res.blob())
+    const total = Number(res.headers.get('content-length')) || region.bytes || 0
+    const parts = []
+    let done = 0
+    const reader = res.body.getReader()
+    for (;;) {
+      alive()
+      const { done: end, value } = await reader.read()
+      if (end) break
+      parts.push(value)
+      done += value.length
+      onProgress({ done, total })
+    }
+    await set(regionKey(region), new Blob(parts))
+  } finally {
+    clearTimeout(timer)
   }
-  await set(regionKey(region), new Blob(parts))
 }
 
 // Capa Leaflet desde el .pmtiles guardado; null si todavía no se bajó.

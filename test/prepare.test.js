@@ -63,6 +63,20 @@ describe('prepareTrip', () => {
     expect(d.store.get('prepare:t1')).toEqual(second)
   })
 
+  it('a tile that always fails is skipped: the rest still get cached and only it is retried', async () => {
+    const d = deps()
+    const BAD = '/12/1003/2000.png'
+    const first = recorder((u) => u.endsWith(BAD))
+    const s1 = await prepareTrip(trip, { ...d, fetch: first.fetchImpl })
+    expect(s1.depth).toEqual({ done: 9, total: 10 })
+    expect(s1.missing.join(' ')).toMatch(/Profundidad: 9 de 10 teselas, 1 con error/)
+    expect(d.caches.stores.get('depth-v1').size).toBe(9)
+
+    const again = recorder((u) => u.endsWith(BAD))
+    await prepareTrip(trip, { ...d, fetch: again.fetchImpl })
+    expect(again.calls.filter(isDepth).map((u) => u.slice(-BAD.length))).toEqual([BAD])
+  })
+
   it('without VITE_MAP_BASE_URL skips the base map with a note and does the rest', async () => {
     const d = deps()
     const r = recorder()

@@ -12,7 +12,8 @@ export default defineConfig({
         // Lo que guarda "Preparar viaje" (src/prepare/prepare.js) se sirve desde la Cache API sin señal.
         runtimeCaching: [
           {
-            urlPattern: /\/storage\/v1\/object\/public\/catch-photos\//,
+            // Anclada al inicio: workbox solo toma rutas de otro origen si el regex matchea desde el índice 0.
+            urlPattern: /^https:\/\/[^/]+\/storage\/v1\/object\/public\/catch-photos\//,
             handler: 'CacheFirst',
             options: { cacheName: 'photos-v1', matchOptions: { ignoreVary: true } },
           },

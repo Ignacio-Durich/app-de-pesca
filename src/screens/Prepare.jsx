@@ -83,7 +83,9 @@ export function Prepare({ trip, tripId }) {
 
       {s && (
         <div class="card">
-          {s.missing.length === 0 && s.dataAt && <p class="ready">Listo para offline ✓ · datos {when(s.dataAt)}</p>}
+          {s.missing.length === 0 && s.dataAt && (
+            <p class="ready">Listo para offline ✓{s.regionNote ? ' (sin mapa base)' : ''} · datos {when(s.dataAt)}</p>
+          )}
           <h2>Guardado en el teléfono</h2>
           <ul class="list">
             <li>{ok(s.forecastAt)} Pronóstico{s.forecastAt && ` · ${when(s.forecastAt)}`}</li>
