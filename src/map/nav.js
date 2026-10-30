@@ -21,3 +21,7 @@ function part(v, pos, neg) {
   return `${d}°${String(m.toFixed(1)).padStart(4, '0').replace('.', ',')}' ${v < 0 ? neg : pos}`
 }
 export const toDegMin = (lat, lon) => `${part(lat, 'N', 'S')}  ${part(lon, 'E', 'O')}`
+
+// Filas (spots, sondeos) a menos de `km` del punto; las que no tienen coordenadas quedan afuera.
+export const within = (rows, lat, lon, km) =>
+  rows.filter((r) => r.lat != null && r.lon != null && distanceBearing(lat, lon, r.lat, r.lon).km < km)

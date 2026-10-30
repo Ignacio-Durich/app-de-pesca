@@ -4,12 +4,13 @@ import { makeClient } from './db.js'
 
 // Filas compartidas de una tabla del viaje: primero lo local, después el pull (al abrir y al
 // volver a la app). Sin red el pull falla y se ignora. `reload` relee lo local tras escribir.
-export function useRows(table, tripId) {
+// scope: tripId, o nearScope(...) para spots y sondeos (tripId va igual en el header x-trip-id).
+export function useRows(table, scope, tripId = scope) {
   const [rows, setRows] = useState([])
-  const reload = useCallback(() => listRows(table, tripId).then(setRows), [table, tripId])
+  const reload = useCallback(() => listRows(table, scope).then(setRows), [table, scope])
   useEffect(() => {
     let alive = true
-    const refresh = () => pull(makeClient(tripId), table, tripId).then((r) => alive && setRows(r), () => {})
+    const refresh = () => pull(makeClient(tripId), table, scope).then((r) => alive && setRows(r), () => {})
     reload()
     refresh()
     const onVisible = () => document.visibilityState === 'visible' && refresh()
@@ -18,6 +19,6 @@ export function useRows(table, tripId) {
       alive = false
       document.removeEventListener('visibilitychange', onVisible)
     }
-  }, [table, tripId, reload])
+  }, [table, scope, tripId, reload])
   return [rows, reload]
 }

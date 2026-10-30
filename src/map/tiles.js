@@ -4,8 +4,8 @@ const R = 6371.0088 // km, radio medio terrestre (igual que nav.js)
 export const DEPTH_CACHE = 'depth-v1'
 export const depthTileUrl = ({ z, x, y }) => `https://s3.amazonaws.com/elevation-tiles-prod/terrarium/${z}/${x}/${y}.png`
 
-const lon2x = (lon, z) => ((lon + 180) / 360) * 2 ** z
-const lat2y = (lat, z) => {
+export const lon2x = (lon, z) => ((lon + 180) / 360) * 2 ** z
+export const lat2y = (lat, z) => {
   const r = (lat * Math.PI) / 180
   return ((1 - Math.log(Math.tan(r) + 1 / Math.cos(r)) / Math.PI) / 2) * 2 ** z
 }

@@ -5,6 +5,7 @@ import { Itinerary } from './Itinerary.jsx'
 import { Emergency } from './Emergency.jsx'
 import { Catches } from './Catches.jsx'
 import { Prepare } from './Prepare.jsx'
+import { MapScreen } from './Map.jsx'
 
 const Placeholder = (title) => () => (
   <section class="card">
@@ -34,7 +35,7 @@ function Mas({ tripId }) {
 // Las pantallas de las otras tareas reemplazan su entrada acá. Props: { trip, me, tripId }.
 export const tabScreens = {
   pronostico: Forecast,
-  mapa: Placeholder('Mapa'),
+  mapa: MapScreen,
   capturas: Catches,
   mas: Mas,
   checklist: Checklist,
