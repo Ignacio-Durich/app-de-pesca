@@ -31,7 +31,7 @@ export function Emergency() {
             {pos.accuracy != null && <p class="muted">±{Math.round(pos.accuracy)} m</p>}
           </>
         ) : (
-          <p class="muted">Buscando señal de GPS…</p>
+          (!err || err === 'waiting') && <p class="muted">Buscando señal de GPS…</p>
         )}
         {err === 'denied' && (
           <p>
@@ -40,7 +40,7 @@ export function Emergency() {
           </p>
         )}
         {err === 'unavailable' && <p>Este dispositivo o navegador no tiene GPS disponible.</p>}
-        {err === 'waiting' && pos && <p class="muted">Sin señal nueva; se muestra la última posición.</p>}
+        {err && pos && <p class="muted">Última posición conocida: ya no se actualiza.</p>}
       </div>
       {tel && (
         <a class="btn big sos" href={`tel:${tel.value}`}>Llamar al {tel.value}</a>
