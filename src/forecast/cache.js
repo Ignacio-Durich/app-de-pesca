@@ -19,9 +19,10 @@ export async function cachedForecast(trip, now = Date.now()) {
 }
 
 // Lo local si tiene menos de REFRESH_HOURS; si no, intenta bajarlo. Sin red: la copia con `error`.
-export async function getForecast(trip, { now = Date.now(), fetchImpl = fetch } = {}) {
+// force (botón "Actualizar ahora"): intenta bajarlo aunque la copia sea reciente.
+export async function getForecast(trip, { now = Date.now(), fetchImpl = fetch, force = false } = {}) {
   const local = await cachedForecast(trip, now)
-  if (local.forecast && local.ageHours < REFRESH_HOURS) return local
+  if (!force && local.forecast && local.ageHours < REFRESH_HOURS) return local
   try {
     const forecast = await fetchForecast(trip.lat, trip.lon, fetchImpl)
     await localSet(cacheKey(trip), forecast)

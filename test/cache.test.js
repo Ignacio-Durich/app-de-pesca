@@ -38,6 +38,22 @@ describe('getForecast', () => {
     expect(r.forecast.fetchedAt).toBe(copy(0.5).fetchedAt)
   })
 
+  it('force fetches even with a 30 min copy', async () => {
+    await localSet(cacheKey(trip), copy(0.5))
+    const { calls, fetchImpl } = fakeFetch()
+    const r = await getForecast(trip, { now: NOW, fetchImpl, force: true })
+    expect(calls).toHaveLength(2)
+    expect(r.refreshed).toBe(true)
+    expect(r.ageHours).toBe(0)
+  })
+
+  it('force without network keeps the 30 min copy and reports the error', async () => {
+    await localSet(cacheKey(trip), copy(0.5))
+    const r = await getForecast(trip, { now: NOW, fetchImpl: offline, force: true })
+    expect(r.error).toBeTruthy()
+    expect(r.forecast.fetchedAt).toBe(copy(0.5).fetchedAt)
+  })
+
   it('with a 2 h copy fetches and stores the new forecast', async () => {
     await localSet(cacheKey(trip), copy(2))
     const { calls, fetchImpl } = fakeFetch()

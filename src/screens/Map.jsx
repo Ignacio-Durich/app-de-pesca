@@ -11,7 +11,8 @@ import { dec, dayLabel } from '../forecast/view.js'
 import { conditionsAt } from '../catches/conditions.js'
 import { regionFor, basemapLayer } from '../map/basemap.js'
 import { DEPTH_CACHE, SAT_TEMPLATE, SAT_ATTRIBUTION } from '../map/tiles.js'
-import { SAT_ZMAX, DEPTH_RADIUS_KM } from '../prepare/prepare.js'
+import { SAT_ZMAX, DEPTH_RADIUS_KM, STEP_TIMEOUT_MS } from '../prepare/prepare.js'
+import { withTimeout } from '../lib/timeout.js'
 import { toDegMin, within, distanceBearing } from '../map/nav.js'
 import { depthAt, soundingDatum, bandColor, BANDS, BAND_M, BAND_ALPHA } from '../map/depth.js'
 import { GoTo, distLabel } from '../components/GoTo.jsx'
@@ -41,8 +42,8 @@ const textEl = (text) => Object.assign(document.createElement('div'), { textCont
 
 export function MapScreen({ trip, me, tripId }) {
   const scope = useMemo(() => nearScope(trip.lat, trip.lon), [trip.lat, trip.lon])
-  const [spotRows, reloadSpots] = useRows('spots', scope, tripId)
-  const [soundRows, reloadSoundings] = useRows('soundings', scope, tripId)
+  const [spotRows, reloadSpots, pullSpots] = useRows('spots', scope, tripId)
+  const [soundRows, reloadSoundings, pullSoundings] = useRows('soundings', scope, tripId)
   const spots = useMemo(() => within(spotRows, trip.lat, trip.lon, SPOTS_RADIUS_KM), [spotRows, trip.lat, trip.lon])
   const soundings = useMemo(
     () => within(soundRows, trip.lat, trip.lon, SPOTS_RADIUS_KM).sort((a, b) => Date.parse(a.measured_at) - Date.parse(b.measured_at)),
@@ -62,6 +63,7 @@ export function MapScreen({ trip, me, tripId }) {
   const [mode, setMode] = useState(null) // 'mark' | 'sound' | 'edit' | 'go'
   const [at, setAt] = useState(null) // posición tomada al abrir "Marcar punto" o "Cargar sondeo"
   const [msg, setMsg] = useState(null)
+  const [syncing, setSyncing] = useState(false)
   const [loadErr, setLoadErr] = useState(false)
   const sel = spots.find((s) => s.id === selId)
   const probe = (lat, lon) => (lm.current?.cache ? depthAt(lat, lon, lm.current.cache) : Promise.resolve(null))
@@ -176,6 +178,14 @@ export function MapScreen({ trip, me, tripId }) {
   }, [ready, pos])
 
   const open = (k) => { setMode(k); setAt(pos); setMsg(null) }
+  // Botón: lo que cargó el resto del grupo. Las capas del mapa no cambian: esas se bajan en Preparar viaje.
+  const sync = async () => {
+    setSyncing(true)
+    setMsg(null)
+    const res = await Promise.allSettled([pullSpots(), pullSoundings()].map((p) => withTimeout(p, STEP_TIMEOUT_MS)))
+    setSyncing(false)
+    setMsg(res.every((r) => r.status === 'fulfilled') ? 'Spots y sondeos actualizados.' : 'Sin señal: se ve lo guardado en el teléfono.')
+  }
   const close = () => setMode(null)
   const focus = (s) => { setSelId(s.id); setMode(null); lm.current?.map.setView([s.lat, s.lon]) }
 
@@ -263,6 +273,7 @@ export function MapScreen({ trip, me, tripId }) {
         <button class="btn big" onClick={() => open('mark')}>Marcar punto</button>
         <button class="btn big" onClick={() => open('sound')}>Cargar sondeo</button>
       </div>
+      <button class="btn" onClick={sync} disabled={syncing}>{syncing ? 'Actualizando…' : 'Actualizar spots y sondeos'}</button>
       {msg && <p class="muted">{msg}</p>}
       {(mode === 'mark' || mode === 'sound') && !at && <GpsHelp err={gpsErr} onClose={close} />}
       {mode === 'mark' && at && <MarkForm at={at} defaultName={`Punto ${nowTrip().time}`} onSave={markSpot} onCancel={close} />}

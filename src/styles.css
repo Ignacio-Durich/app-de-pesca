@@ -208,6 +208,7 @@ details[open] summary::after { transform: rotate(45deg); }
 .mt tr.unc td { color: var(--amber); }
 .day-info { padding-left: 18px; margin: 8px 0 0; }
 .data-age { margin-top: 12px; font-size: .85rem; }
+.btn.refresh { display: flex; width: 100%; margin-top: 8px; }
 select {
   min-height: 44px;
   padding: 8px 12px;

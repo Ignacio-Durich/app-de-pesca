@@ -29,10 +29,10 @@ export function Forecast({ trip, tripId }) {
   const [now, setNow] = useState(Date.now)
   const run = useRef(0) // cambia al cambiar de lugar o desmontar: las respuestas viejas se descartan
 
-  const refresh = () => {
+  const refresh = (force = false) => {
     const my = run.current
     setLoading(true)
-    getForecast(trip)
+    getForecast(trip, { force })
       .then((r) => my === run.current && setRes(r))
       .catch((e) => my === run.current && setRes((s) => ({ forecast: null, ...s, error: e.message })))
       .finally(() => my === run.current && setLoading(false))
@@ -79,6 +79,9 @@ export function Forecast({ trip, tripId }) {
         <span class={age.amber ? 'amber' : ''}>{age.text}</span>
         {res.error && !loading && <span class="muted"> · no se pudo actualizar</span>}
         <span class="muted"> · Datos: Open-Meteo</span>
+        <button class="btn refresh" onClick={() => refresh(true)} disabled={loading}>
+          {loading ? 'Actualizando…' : 'Actualizar ahora'}
+        </button>
       </footer>
     </>
   )
