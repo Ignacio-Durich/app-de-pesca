@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { prepareTrip, needsReminder, zoneChanged, isReady, needsSatMove, needsResume, statusKey, depthTiles, satTiles, satMinutes } from '../src/prepare/prepare.js'
+import { prepareTrip, needsReminder, zoneChanged, isReady, needsSatMove, needsResume, statusKey, depthTiles, satTiles, satTime, satMissing } from '../src/prepare/prepare.js'
 import regions from '../src/data/regions.json'
 
 const trip = { id: 't1', lat: -40.5512, lon: -62.2349, start_date: '2026-11-07', end_date: '2026-11-08' }
@@ -187,7 +187,7 @@ describe('prepareTrip', () => {
   })
 
   it('waits at each batch and a pause stops the tiles without losing what is saved', async () => {
-    const d = deps({ sat: manySat(12) })
+    const d = deps({ sat: manySat(24) })
     let batches = 0
     const paused = Object.assign(new Error('pausada'), { name: 'PausedError' })
     const s = await prepareTrip(trip, {
@@ -196,8 +196,8 @@ describe('prepareTrip', () => {
       beforeBatch: async () => { if (++batches > 3) throw paused },
     })
     expect(s.depth).toEqual({ done: 10, total: 10 })
-    expect(s.sat).toEqual({ done: 6, total: 12 })
-    expect(s.missing.join(' ')).toMatch(/Satélite: 6 de 12 teselas \(la pausaste\)/)
+    expect(s.sat).toEqual({ done: 12, total: 24 })
+    expect(s.missing.join(' ')).toMatch(/Satélite: 12 de 24 teselas \(la pausaste\)/)
     expect(s.dataAt).not.toBeNull()
   })
 
@@ -220,7 +220,7 @@ describe('prepareTrip', () => {
   })
 
   it('a cut Actualizar keeps the saved counts: re-checking starts low but the tiles are still there', async () => {
-    const SAT = manySat(8)
+    const SAT = manySat(20)
     const d = deps({ sat: SAT })
     await prepareTrip(trip, { ...d, fetch: recorder().fetchImpl })
     let seen = null
@@ -229,8 +229,8 @@ describe('prepareTrip', () => {
       fetch: recorder().fetchImpl,
       onProgress: (p) => { if (p.step === 'sat') seen ??= { ...p, saved: d.store.get(statusKey(trip.id)) } },
     })
-    expect(seen.done).toBe(6) // la primera tanda: todavía no volvió a contar todas
-    expect(seen.saved.sat).toEqual({ done: 8, total: 8 })
+    expect(seen.done).toBe(12) // la primera tanda: todavía no volvió a contar todas
+    expect(seen.saved.sat).toEqual({ done: 20, total: 20 })
     expect(seen.saved.depth).toEqual({ done: 10, total: 10 })
   })
 
@@ -341,13 +341,6 @@ describe('zoneChanged', () => {
   })
 })
 
-describe('satMinutes', () => {
-  it('estimates whole minutes at the measured 20 tiles per second', () => {
-    expect(satMinutes(24688)).toBe(21)
-    expect(satMinutes(100)).toBe(1)
-  })
-})
-
 describe('isReady', () => {
   const done = { missing: [], dataAt: 'x', depth: { done: 2, total: 2 }, sat: { done: 3, total: 3 } }
   it('needs every chosen download complete', () => {
@@ -358,5 +351,29 @@ describe('isReady', () => {
     expect(isReady({ ...done, dataAt: null })).toBe(false)
     expect(isReady({ ...done, missing: ['Fotos'] })).toBe(false)
     expect(isReady(null)).toBe(false)
+  })
+})
+
+describe('satTime', () => {
+  it('gives the measured range for a full download', () => {
+    expect(satTime(24688)).toBe('15–38 min')
+  })
+  it('does not show a range when both ends round to the same minutes', () => {
+    expect(satTime(100)).toBe('1 min')
+  })
+})
+
+describe('satMissing', () => {
+  const total = 24688
+  it('is everything when nothing was saved or the satellite was skipped', () => {
+    expect(satMissing(total, null)).toBe(total)
+    expect(satMissing(total, { sat: null })).toBe(total)
+  })
+  it('is what is left of a partial download', () => {
+    expect(satMissing(total, { sat: { done: total - 5, total } })).toBe(5)
+    expect(satMissing(total, { sat: { done: total, total } })).toBe(0)
+  })
+  it('is everything when the zone changed', () => {
+    expect(satMissing(total, { sat: { done: 100, total: 100 } })).toBe(total)
   })
 })

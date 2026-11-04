@@ -6,7 +6,7 @@ import { fromInstant } from '../lib/time.js'
 import { dayLabel, dec } from '../forecast/view.js'
 import { regionFor } from '../map/basemap.js'
 import { prepareRun } from '../prepare/run.js'
-import { needsReminder, needsSatMove, needsResume, zoneChanged, isReady, statusKey, depthTiles, satTiles, DEPTH_MB_PER_TILE, SAT_MB_ESTIMATED, satMinutes } from '../prepare/prepare.js'
+import { needsReminder, needsSatMove, needsResume, zoneChanged, isReady, statusKey, depthTiles, satTiles, DEPTH_MB_PER_TILE, SAT_MB_ESTIMATED, satTime, satMissing } from '../prepare/prepare.js'
 
 const nowTrip = () => fromInstant(new Date().toISOString())
 const nowLocalIso = () => { const n = nowTrip(); return `${n.date}T${n.time}` }
@@ -83,6 +83,7 @@ export function Prepare({ trip, tripId }) {
 
   const s = status
   const ok = (cond) => (cond ? '✓' : '—')
+  const missing = satMissing(satCount, s)
   return (
     <section class="stack">
       <h1>Preparar viaje</h1>
@@ -110,11 +111,13 @@ export function Prepare({ trip, tripId }) {
         <div class="card stack">
           <h2>¿Bajar también la vista satelital?</h2>
           <p class="muted small">
-            Ocupa unos {SAT_MB_ESTIMATED} MB más y con wifi tarda unos {satMinutes(satCount)} minutos (medido en una prueba;
-            si ya bajaste una parte, menos). Sin satélite el mapa igual tiene calles, costa y profundidad.
+            {missing
+              ? `Ocupa unos ${Math.ceil((SAT_MB_ESTIMATED * missing) / satCount)} MB más. Son ${missing} imágenes sueltas: tarda ~${satTime(missing)} según la conexión, y mientras baja te dice cuánto falta.`
+              : 'El satélite ya está en el teléfono: actualizar no lo vuelve a bajar y tarda poco.'}{' '}
+            Sin satélite el mapa igual tiene calles, costa y profundidad.
           </p>
           <button class="btn big primary" onClick={() => start(true)} disabled={s === undefined}>
-            {s ? 'Actualizar' : 'Preparar'} con satélite (~{satMinutes(satCount)} min)
+            {s ? 'Actualizar' : 'Preparar'} con satélite ({missing ? `~${satTime(missing)}` : 'ya está bajado'})
           </button>
           <button class="btn big" onClick={() => start(false)} disabled={s === undefined}>
             {s ? 'Actualizar' : 'Preparar'} sin satélite

@@ -24,6 +24,10 @@ export const SAT_ZMIN = 8
 export const SAT_ZMAX = 13
 export const SAVE_EVERY_TILES = 300 // [diseño] cada cuánto se guarda el avance: si se corta, no se pierde la cuenta
 export const DEPTH_PARALLEL = 6 // [diseño] pedidos a la vez: de a uno eran ~3 teselas/s (medido en la prueba local, 30/10)
+// [diseño] Medido el 4/11 en WebKit de Mac, alternando sobre teselas mezcladas (3 rondas de 100, sin errores):
+// de a 6, 18,9 teselas/s en promedio; de a 12, 28,7. Con 12 siempre en curso daba 36,9, pero no se hizo: cambia cómo
+// se corta y se pausa la descarga, y son ~3 min menos.
+export const SAT_PARALLEL = 12
 // [diseño] spec §2.9: cartel si faltan 48 h o menos para el viaje y los datos tienen más de 12 h
 // (o nunca se preparó). "Datos" = el pronóstico (forecastAt).
 export const REMIND_WITHIN_H = 48
@@ -35,9 +39,18 @@ export const DEPTH_MB_PER_TILE = 3.1 / 60
 // Muestra del 30/10 (40 teselas por zoom, 250 km alrededor de San Blas): z8 9,0 KB, z9 6,5, z10 5,8,
 // z11 4,9, z12 4,5, z13 6,1 KB en promedio → ~145 MB las 24.688 teselas.
 export const SAT_MB_ESTIMATED = 145
-// Medido el 30/10 en la prueba local con wifi: 10.354 teselas de satélite en ~8 min (~20 por segundo).
-export const SAT_TILES_PER_S = 20
-export const satMinutes = (tiles) => Math.ceil(tiles / SAT_TILES_PER_S / 60)
+// Velocidad real de descarga de a 12, medida el 4/11 desde la Mac con wifi (en iPhone no se midió). Varía mucho
+// entre pruebas, por eso se muestra un rango: 28,7 por segundo es el promedio en WebKit y 11,1 lo peor de todas
+// (una muestra de 120 en Chromium).
+export const SAT_TILES_PER_S_FAST = 28.7
+export const SAT_TILES_PER_S_SLOW = 11.1
+const minutes = (tiles, perS) => Math.ceil(tiles / perS / 60)
+export function satTime(tiles) {
+  const low = minutes(tiles, SAT_TILES_PER_S_FAST), high = minutes(tiles, SAT_TILES_PER_S_SLOW)
+  return low === high ? `${low} min` : `${low}–${high} min`
+}
+// Teselas que faltan bajar: lo guardado solo cuenta si es de la zona actual.
+export const satMissing = (total, status) => (status?.sat?.total === total ? total - status.sat.done : total)
 
 // [diseño] tiempo máximo por pedido: uno colgado no deja "Preparando…" para siempre.
 export const FETCH_TIMEOUT_MS = 20000 // teselas, fotos
@@ -79,16 +92,16 @@ async function cacheOnce(cache, url, fetchImpl) {
   await cache.put(url, res)
 }
 
-// De a DEPTH_PARALLEL. Una tesela que falla se saltea y se reintenta la próxima vez (lo ya guardado en
+// De a tandas. Una tesela que falla se saltea y se reintenta la próxima vez (lo ya guardado en
 // la caché no se vuelve a pedir). Si falla una tanda entera (sin señal o sin espacio) se corta ahí.
 // prog = {done, total} (done = teselas guardadas). Devuelve el texto para "missing", o null si están todas.
-async function cacheTiles(open, urls, fetchImpl, prog, onBatch, beforeBatch) {
+async function cacheTiles(open, urls, parallel, fetchImpl, prog, onBatch, beforeBatch) {
   let failed = 0, lastError = null
   try {
     const cache = await open()
-    for (let i = 0; i < urls.length; i += DEPTH_PARALLEL) {
+    for (let i = 0; i < urls.length; i += parallel) {
       await beforeBatch()
-      const batch = await Promise.allSettled(urls.slice(i, i + DEPTH_PARALLEL).map((u) => cacheOnce(cache, u, fetchImpl)))
+      const batch = await Promise.allSettled(urls.slice(i, i + parallel).map((u) => cacheOnce(cache, u, fetchImpl)))
       const bad = batch.filter((r) => r.status === 'rejected')
       prog.done += batch.length - bad.length
       failed += bad.length
@@ -178,7 +191,7 @@ export async function prepareTrip(trip, opts = {}) {
   await save()
 
   // 3. Profundidad y satélite.
-  const depthMiss = await cacheTiles(() => cachesImpl.open(DEPTH_CACHE), tiles.map(depthTileUrl), fetchImpl, s.depth, tick('depth', s.depth), beforeBatch)
+  const depthMiss = await cacheTiles(() => cachesImpl.open(DEPTH_CACHE), tiles.map(depthTileUrl), DEPTH_PARALLEL, fetchImpl, s.depth, tick('depth', s.depth), beforeBatch)
   floor.depth = null
   if (depthMiss) s.missing.push(`Profundidad: ${depthMiss}`)
   await save()
@@ -187,7 +200,7 @@ export async function prepareTrip(trip, opts = {}) {
     const old = await cachesImpl?.has(SAT_CACHE).then((yes) => (yes ? cachesImpl.open(SAT_CACHE) : null)).catch(() => null)
     const satFetch = old ? async (url, o) => (await old.match(url, { ignoreVary: true })) ?? fetchImpl(url, o) : fetchImpl
     s.satDb = !old // sin sat-v1 todo lo bajado ya está en IndexedDB, aunque esta corrida se corte
-    const satMiss = await cacheTiles(async () => satStore, sat.map(satTileUrl), satFetch, s.sat, tick('sat', s.sat), beforeBatch)
+    const satMiss = await cacheTiles(async () => satStore, sat.map(satTileUrl), SAT_PARALLEL, satFetch, s.sat, tick('sat', s.sat), beforeBatch)
     floor.sat = null
     if (satMiss) s.missing.push(`Satélite: ${satMiss}`)
     else if (old) await cachesImpl.delete(SAT_CACHE).catch(() => {})
