@@ -21,6 +21,7 @@ export const DEPTH_ZMAX = 10
 // detalle; más cerca el mapa agranda la z13.
 export const SAT_ZMIN = 8
 export const SAT_ZMAX = 13
+export const SAVE_EVERY_TILES = 300 // [diseño] cada cuánto se guarda el avance: si se corta, no se pierde la cuenta
 export const DEPTH_PARALLEL = 6 // [diseño] pedidos a la vez: de a uno eran ~3 teselas/s (medido en la prueba local, 30/10)
 // [diseño] spec §2.9: cartel si faltan 48 h o menos para el viaje y los datos tienen más de 12 h
 // (o nunca se preparó). "Datos" = el pronóstico (forecastAt).
@@ -50,6 +51,11 @@ export const satTiles = (trip) => tilesInRadius(trip.lat, trip.lon, DEPTH_RADIUS
 // La zona creció (80 → 250 km el 30/10): lo guardado antes no la cubre y hay que tocar Actualizar.
 export const zoneChanged = (trip, status) =>
   !!status && (status.depth?.total !== depthTiles(trip).length || (status.sat !== null && status.sat?.total !== satTiles(trip).length))
+// Listo de verdad: sin faltantes y con todo lo elegido completo (una corrida cortada no llega a anotar faltantes).
+const full = (p) => !!p && p.done === p.total
+export const isReady = (s) => !!s && s.missing.length === 0 && !!s.dataAt && full(s.depth) && (!s.sat || full(s.sat))
+// Mientras se vuelve a revisar, lo guardado no baja: las teselas siguen ahí aunque todavía no se hayan recontado.
+const atLeast = (cur, low) => (cur && low?.total === cur.total && low.done > cur.done ? { ...cur, done: low.done } : cur)
 const why = (e) => (e?.name === 'QuotaExceededError' ? 'sin espacio en el teléfono' : 'sin señal o se cortó')
 
 function supabaseDeps(tripId) {
@@ -116,12 +122,25 @@ export async function prepareTrip(trip, opts = {}) {
     regionAt: prev.regionAt ?? null,
     regionNote: null,
     depth: { done: 0, total: tiles.length },
-    sat: withSat ? { done: 0, total: sat.length } : null,
+    // Sin satélite no se toca lo que ya se haya bajado.
+    sat: withSat ? { done: 0, total: sat.length } : prev.sat ?? null,
     dataAt: prev.dataAt ?? null,
     photos: { done: 0, total: 0 },
     missing: [],
   }
-  const save = () => set(statusKey(trip.id), s)
+  // Lo guardado antes vale hasta que termina el paso; al terminar manda la cuenta nueva (puede ser menor).
+  const floor = { depth: prev.depth, sat: withSat ? prev.sat : null }
+  const save = () => set(statusKey(trip.id), { ...s, depth: atLeast(s.depth, floor.depth), sat: atLeast(s.sat, floor.sat) })
+  const tick = (step, prog) => {
+    let saved = 0
+    return () => {
+      onProgress({ step, ...prog })
+      if (prog.done - saved >= SAVE_EVERY_TILES) {
+        saved = prog.done
+        Promise.resolve(save()).catch(() => {}) // solo el avance: el guardado final es el que importa
+      }
+    }
+  }
 
   // 1. Pronóstico: getForecast usa la copia local si tiene menos de 1 h.
   onProgress({ step: 'forecast' })
@@ -149,11 +168,13 @@ export async function prepareTrip(trip, opts = {}) {
   await save()
 
   // 3. Profundidad y satélite.
-  const depthMiss = await cacheTiles(cachesImpl, DEPTH_CACHE, tiles.map(depthTileUrl), fetchImpl, s.depth, () => onProgress({ step: 'depth', ...s.depth }))
+  const depthMiss = await cacheTiles(cachesImpl, DEPTH_CACHE, tiles.map(depthTileUrl), fetchImpl, s.depth, tick('depth', s.depth))
+  floor.depth = null
   if (depthMiss) s.missing.push(`Profundidad: ${depthMiss}`)
   await save()
   if (withSat) {
-    const satMiss = await cacheTiles(cachesImpl, SAT_CACHE, sat.map(satTileUrl), fetchImpl, s.sat, () => onProgress({ step: 'sat', ...s.sat }))
+    const satMiss = await cacheTiles(cachesImpl, SAT_CACHE, sat.map(satTileUrl), fetchImpl, s.sat, tick('sat', s.sat))
+    floor.sat = null
     if (satMiss) s.missing.push(`Satélite: ${satMiss}`)
     await save()
   }

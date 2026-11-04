@@ -5,7 +5,7 @@ import { localGet } from '../lib/local.js'
 import { fromInstant } from '../lib/time.js'
 import { dayLabel, dec } from '../forecast/view.js'
 import { regionFor } from '../map/basemap.js'
-import { prepareTrip, needsReminder, zoneChanged, statusKey, depthTiles, satTiles, DEPTH_MB_PER_TILE, SAT_MB_ESTIMATED, satMinutes } from '../prepare/prepare.js'
+import { prepareTrip, needsReminder, zoneChanged, isReady, statusKey, depthTiles, satTiles, DEPTH_MB_PER_TILE, SAT_MB_ESTIMATED, satMinutes } from '../prepare/prepare.js'
 
 const nowTrip = () => fromInstant(new Date().toISOString())
 const nowLocalIso = () => { const n = nowTrip(); return `${n.date}T${n.time}` }
@@ -24,11 +24,32 @@ const STEP = {
   photos: (p) => `Fotos: ${p.done} de ${p.total}`,
 }
 
+// Pantalla prendida mientras baja: bloqueada, el iPhone corta la descarga. Si el teléfono no lo permite no pasa
+// nada: la pantalla igual pide dejarla prendida. Se suelta al salir de la app: se vuelve a pedir al volver.
+function useKeepAwake(on) {
+  useEffect(() => {
+    if (!on) return
+    let alive = true, lock = null
+    const take = () => navigator.wakeLock?.request('screen').then((l) => (alive ? (lock = l) : l.release()), () => {})
+    const back = () => document.visibilityState === 'visible' && take()
+    take()
+    document.addEventListener('visibilitychange', back)
+    return () => {
+      alive = false
+      lock?.release().catch(() => {})
+      document.removeEventListener('visibilitychange', back)
+    }
+  }, [on])
+}
+
 export function Prepare({ trip, tripId }) {
   const [status, setStatus] = useState(undefined)
+  const [guarded, setGuarded] = useState(null) // lo guardado está protegido de que el teléfono lo borre; null: no se sabe
   const [prog, setProg] = useState(null)
   const [error, setError] = useState(null)
   useEffect(() => { localGet(statusKey(tripId)).then((s) => setStatus(s ?? null), () => setStatus(null)) }, [tripId])
+  useEffect(() => { navigator.storage?.persisted?.().then(setGuarded, () => {}) }, [])
+  useKeepAwake(!!prog)
 
   const region = regionFor(trip.lat, trip.lon)
   const configured = !!import.meta.env.VITE_MAP_BASE_URL
@@ -52,8 +73,8 @@ export function Prepare({ trip, tripId }) {
   const run = async (withSat) => {
     if (prog) return
     satStart.current = null
-    // Primer uso: pedir que el navegador no borre lo guardado (spec §3.4). Se ignora si no se puede.
-    if (!status) navigator.storage?.persist?.().catch(() => {})
+    // Pedir que el navegador no borre lo guardado (spec §3.4), cada vez: puede no darlo la primera.
+    navigator.storage?.persist?.().then(setGuarded, () => {})
     setError(null)
     setProg({ step: 'forecast' })
     try {
@@ -108,6 +129,7 @@ export function Prepare({ trip, tripId }) {
       {prog && (
         <div class="card" aria-live="polite">
           <p>{STEP[prog.step]?.(prog)}</p>
+          <p class="muted small">Dejá la app abierta y la pantalla prendida. Si se corta, tocá Actualizar y sigue desde donde quedó.</p>
           {prog.total ? <progress class="bar" value={prog.done} max={prog.total} /> : <progress class="bar" />}
         </div>
       )}
@@ -116,7 +138,10 @@ export function Prepare({ trip, tripId }) {
       {s && (
         <div class="card">
           {zoneChanged(trip, s) && <p class="error">La zona ahora es de 250 km: tocá Actualizar para bajar lo que falta.</p>}
-          {s.missing.length === 0 && s.dataAt && !zoneChanged(trip, s) && (
+          {!prog && !isReady(s) && s.missing.length === 0 && !zoneChanged(trip, s) && (
+            <p class="error">Se cortó antes de terminar: tocá Actualizar y sigue desde donde quedó.</p>
+          )}
+          {isReady(s) && !zoneChanged(trip, s) && (
             <p class="ready">Listo para offline ✓{s.regionNote ? ' (sin mapa base)' : ''} · datos {when(s.dataAt)}</p>
           )}
           <h2>Guardado en el teléfono</h2>
@@ -129,6 +154,13 @@ export function Prepare({ trip, tripId }) {
             <li>{ok(s.dataAt)} Spots, sondeos, checklist, itinerario y capturas{s.dataAt && ` · ${when(s.dataAt)}`}</li>
             <li>{ok(s.photos.done === s.photos.total)} Fotos · {s.photos.done} de {s.photos.total}</li>
           </ul>
+          {guarded === false && (
+            <p class="muted small">
+              {isIos() && !isInstalled()
+                ? 'Estás en Safari: el iPhone puede borrar lo guardado. Abrí la app desde el ícono.'
+                : 'El teléfono no marcó lo guardado como protegido: si se queda sin espacio, puede borrarlo.'}
+            </p>
+          )}
           {s.missing.length > 0 && (
             <div class="mt-s">
               <p class="amber">Falta (tocá “Actualizar” con señal y sigue desde donde quedó):</p>
@@ -167,7 +199,7 @@ export function PrepareBanner({ trip, tripId, tab }) {
 // tras 7 días sin usarlo; la app instalada no. Se muestra hasta que se cierra, una vez por teléfono.
 const GUIDE_KEY = 'installGuideDismissed'
 const isIos = () => /iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)
-const isInstalled = () => navigator.standalone === true || matchMedia('(display-mode: standalone)').matches
+export const isInstalled = () => navigator.standalone === true || matchMedia('(display-mode: standalone)').matches
 const dismissed = () => { try { return localStorage.getItem(GUIDE_KEY) === '1' } catch { return false } }
 
 export function InstallGuide({ tripId }) {

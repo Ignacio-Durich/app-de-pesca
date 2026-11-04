@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { prepareTrip, needsReminder, zoneChanged, depthTiles, satTiles, satMinutes } from '../src/prepare/prepare.js'
+import { prepareTrip, needsReminder, zoneChanged, isReady, statusKey, depthTiles, satTiles, satMinutes } from '../src/prepare/prepare.js'
 import regions from '../src/data/regions.json'
 
 const trip = { id: 't1', lat: -40.5512, lon: -62.2349, start_date: '2026-11-07', end_date: '2026-11-08' }
@@ -34,7 +34,7 @@ function deps(extra = {}) {
     store,
     caches: fakeCaches(),
     get: async (k) => store.get(k),
-    set: async (k, v) => void store.set(k, v),
+    set: async (k, v) => void store.set(k, structuredClone(v)), // copia, como IndexedDB
     getForecast: async () => ({ forecast: { fetchedAt: '2026-11-05T11:00:00.000Z' }, ageHours: 0 }),
     pull: async (table) => (table === 'catches' ? [{ id: 'c1', photo_path: 't1/c1.jpg' }, { id: 'c2', photo_path: null }] : []),
     photoUrl: PHOTO,
@@ -132,6 +132,51 @@ describe('prepareTrip', () => {
     expect(s.missing.join(' ')).not.toMatch(/Satélite/)
   })
 
+  const manySat = (n) => Array.from({ length: n }, (_, i) => ({ z: 13, x: 3000 + i, y: 5086 }))
+
+  it('a cut Actualizar keeps the saved counts: re-checking starts low but the tiles are still there', async () => {
+    const SAT = manySat(8)
+    const d = deps({ sat: SAT })
+    await prepareTrip(trip, { ...d, fetch: recorder().fetchImpl })
+    let seen = null
+    await prepareTrip(trip, {
+      ...d,
+      fetch: recorder().fetchImpl,
+      onProgress: (p) => { if (p.step === 'sat') seen ??= { ...p, saved: d.store.get(statusKey(trip.id)) } },
+    })
+    expect(seen.done).toBe(6) // la primera tanda: todavía no volvió a contar todas
+    expect(seen.saved.sat).toEqual({ done: 8, total: 8 })
+    expect(seen.saved.depth).toEqual({ done: 10, total: 10 })
+  })
+
+  it('saves the progress while downloading, so a cut first download keeps the count', async () => {
+    const d = deps({ sat: manySat(400) })
+    let saved = null
+    await prepareTrip(trip, {
+      ...d,
+      fetch: recorder().fetchImpl,
+      onProgress: (p) => { if (p.step === 'sat' && p.done >= 360) saved ??= d.store.get(statusKey(trip.id)).sat },
+    })
+    expect(saved.done).toBeGreaterThanOrEqual(300)
+  })
+
+  it('when a run finishes, its count wins even if it is lower than the saved one', async () => {
+    const SAT = manySat(2)
+    const d = deps({ sat: SAT })
+    await prepareTrip(trip, { ...d, fetch: recorder().fetchImpl })
+    d.caches = fakeCaches()
+    const s = await prepareTrip(trip, { ...d, fetch: recorder((u) => u.includes('eox.at')).fetchImpl })
+    expect(s.sat).toEqual({ done: 0, total: 2 })
+    expect(d.store.get(statusKey(trip.id)).sat).toEqual({ done: 0, total: 2 })
+  })
+
+  it('updating without satellite does not forget the satellite already downloaded', async () => {
+    const d = deps({ sat: manySat(2) })
+    await prepareTrip(trip, { ...d, fetch: recorder().fetchImpl })
+    const s = await prepareTrip(trip, { ...d, fetch: recorder().fetchImpl, withSat: false })
+    expect(s.sat).toEqual({ done: 2, total: 2 })
+  })
+
   it('caches each catch photo once and skips failures', async () => {
     const d = deps()
     const bad = recorder((u) => u.includes('catch-photos'))
@@ -195,5 +240,18 @@ describe('satMinutes', () => {
   it('estimates whole minutes at the measured 20 tiles per second', () => {
     expect(satMinutes(24688)).toBe(21)
     expect(satMinutes(100)).toBe(1)
+  })
+})
+
+describe('isReady', () => {
+  const done = { missing: [], dataAt: 'x', depth: { done: 2, total: 2 }, sat: { done: 3, total: 3 } }
+  it('needs every chosen download complete', () => {
+    expect(isReady(done)).toBe(true)
+    expect(isReady({ ...done, sat: null })).toBe(true)
+    expect(isReady({ ...done, sat: { done: 1, total: 3 } })).toBe(false)
+    expect(isReady({ ...done, depth: { done: 0, total: 2 } })).toBe(false)
+    expect(isReady({ ...done, dataAt: null })).toBe(false)
+    expect(isReady({ ...done, missing: ['Fotos'] })).toBe(false)
+    expect(isReady(null)).toBe(false)
   })
 })

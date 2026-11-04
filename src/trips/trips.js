@@ -17,6 +17,9 @@ export const getMe = (tripId) => read(`me:${tripId}`, null)
 export const setMe = (tripId, name) => write(`me:${tripId}`, name)
 
 export const recentTrips = () => read('recentTrips', [])
+// Al abrir la app en el inicio se entra directo al último viaje. El iPhone cierra las apps de pantalla de
+// inicio y las vuelve a abrir en start_url ("/"). A otros viajes se llega desde Más.
+export const startPath = (pathname, recents) => (pathname === '/' && recents[0] ? `/t/${recents[0].id}` : null)
 
 // El id del viaje dentro de un link pegado (o el id solo). En el iPhone la app instalada no ve lo de
 // Safari ni tiene barra de direcciones: se entra pegando el link.
@@ -43,6 +46,7 @@ const find = (rows, id) => rows.find((r) => r.id === id) ?? null
 export async function loadTrip(id, { pullImpl = defaultPull } = {}) {
   const local = find(await listRows('trips', id), id)
   if (local) {
+    addRecent(local)
     const refresh = Promise.resolve().then(() => pullImpl(id)).catch(() => {})
     return { trip: local, source: 'local', refresh }
   }

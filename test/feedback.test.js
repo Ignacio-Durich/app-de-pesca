@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest'
-import { sendFeedback } from '../src/lib/feedback.js'
+import { sendFeedback, deviceInfo } from '../src/lib/feedback.js'
 
 const client = (result) => {
   const calls = []
@@ -17,5 +17,15 @@ describe('sendFeedback', () => {
     await expect(sendFeedback(client({ error: { message: 'invalid_feedback' } }), 'x', 'N', null, '')).rejects.toMatchObject({ kind: 'invalid_feedback' })
     await expect(sendFeedback(client({ error: { message: 'Failed to fetch' } }), 'x', 'N', null, '')).rejects.toMatchObject({ kind: 'network' })
     await expect(sendFeedback({ rpc: async () => { throw new TypeError('Failed to fetch') } }, 'x', 'N', null, '')).rejects.toMatchObject({ kind: 'network' })
+  })
+})
+
+describe('deviceInfo', () => {
+  test('says how the app is running, for reading the feedback', () => {
+    expect(deviceInfo({ installed: true, persisted: false, usageBytes: 226e6, loadMs: 1840 }))
+      .toBe('app:icono protegido:no usado:226MB carga:1.8s')
+  })
+  test('marks with ? what the phone does not report', () => {
+    expect(deviceInfo({ installed: false })).toBe('app:navegador protegido:? usado:? carga:?')
   })
 })

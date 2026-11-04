@@ -1,6 +1,7 @@
 import { useState } from 'preact/hooks'
 import { makeClient } from '../lib/db.js'
-import { FeedbackError, sendFeedback } from '../lib/feedback.js'
+import { FeedbackError, sendFeedback, deviceLine } from '../lib/feedback.js'
+import { isInstalled } from './Prepare.jsx'
 import { TABS, MAS_ITEMS } from './tabs.jsx'
 
 // Pantalla desde la que se tocó el 🐞 (?desde=mapa): [clave, nombre], o null si se entró por Más o el valor
@@ -29,7 +30,7 @@ export function Feedback({ tripId, me }) {
     setSent(false)
     setError(null)
     try {
-      await sendFeedback(makeClient(tripId), body, me, from?.[0] ?? null, navigator.userAgent)
+      await sendFeedback(makeClient(tripId), body, me, from?.[0] ?? null, await deviceLine(isInstalled()))
       setBody('')
       setSent(true)
     } catch (err) {

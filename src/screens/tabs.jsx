@@ -23,6 +23,7 @@ function Mas({ tripId }) {
         <Link key={key} class="btn big" href={`/t/${tripId}/${key}`}>{label}</Link>
       ))}
       <button class="btn big" onClick={share}>Compartir link del viaje</button>
+      <Link class="btn big" href="/">Otros viajes</Link>
     </section>
   )
 }

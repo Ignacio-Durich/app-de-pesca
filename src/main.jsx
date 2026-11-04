@@ -2,6 +2,7 @@ import { render } from 'preact'
 import { App } from './app.jsx'
 import { makeClient } from './lib/db.js'
 import { startAutoFlush } from './lib/queue.js'
+import { recentTrips, startPath } from './trips/trips.js'
 import './styles.css'
 
 startAutoFlush(makeClient)
@@ -15,4 +16,6 @@ if (navigator.serviceWorker?.controller) {
     if (!reloaded) (reloaded = true), location.reload()
   })
 }
+const start = startPath(location.pathname, recentTrips())
+if (start) history.replaceState(null, '', start)
 render(<App />, document.getElementById('app'))

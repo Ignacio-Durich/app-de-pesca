@@ -1,6 +1,6 @@
 import 'fake-indexeddb/auto'
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
-import { createTrip, loadTrip, getMe, setMe, recentTrips, LOAD_TIMEOUT_MS, tripIdFrom } from '../src/trips/trips.js'
+import { createTrip, loadTrip, getMe, setMe, recentTrips, LOAD_TIMEOUT_MS, tripIdFrom, startPath } from '../src/trips/trips.js'
 import { listRows, saveRow } from '../src/lib/repo.js'
 import { pending } from '../src/lib/queue.js'
 
@@ -83,5 +83,26 @@ describe('tripIdFrom (F1: pegar el link en la app instalada)', () => {
   it('sin id válido: null', () => {
     expect(tripIdFrom('')).toBe(null)
     expect(tripIdFrom('https://pesca.example/t/abc')).toBe(null)
+  })
+})
+
+describe('startPath', () => {
+  const recents = [{ id: 'a', name: 'San Blas' }, { id: 'b', name: 'Otro' }]
+  it('opening the app goes straight to the last trip', () => {
+    expect(startPath('/', recents)).toBe('/t/a')
+  })
+  it('stays where it is on a trip link, or with no saved trips', () => {
+    expect(startPath('/t/b', recents)).toBeNull()
+    expect(startPath('/', [])).toBeNull()
+  })
+})
+
+describe('recentTrips order', () => {
+  it('opening a saved trip moves it first, so the app reopens there', async () => {
+    const a = await createTrip(fields)
+    const b = await createTrip({ ...fields, name: 'Otro' })
+    expect(recentTrips()[0].id).toBe(b)
+    await loadTrip(a, { pullImpl: async () => {} })
+    expect(recentTrips().map((t) => t.id)).toEqual([a, b])
   })
 })
