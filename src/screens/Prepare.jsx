@@ -1,11 +1,12 @@
 // "Preparar viaje" (spec §2.9), el cartel que lo recuerda y la guía de instalación en iPhone (spec §3.4).
-import { useEffect, useMemo, useRef, useState } from 'preact/hooks'
+import { useEffect, useMemo, useState } from 'preact/hooks'
 import { Link } from '../nav.jsx'
 import { localGet } from '../lib/local.js'
 import { fromInstant } from '../lib/time.js'
 import { dayLabel, dec } from '../forecast/view.js'
 import { regionFor } from '../map/basemap.js'
-import { prepareTrip, needsReminder, needsSatMove, zoneChanged, isReady, statusKey, depthTiles, satTiles, DEPTH_MB_PER_TILE, SAT_MB_ESTIMATED, satMinutes } from '../prepare/prepare.js'
+import { prepareRun } from '../prepare/run.js'
+import { needsReminder, needsSatMove, needsResume, zoneChanged, isReady, statusKey, depthTiles, satTiles, DEPTH_MB_PER_TILE, SAT_MB_ESTIMATED, satMinutes } from '../prepare/prepare.js'
 
 const nowTrip = () => fromInstant(new Date().toISOString())
 const nowLocalIso = () => { const n = nowTrip(); return `${n.date}T${n.time}` }
@@ -24,66 +25,60 @@ const STEP = {
   photos: (p) => `Fotos: ${p.done} de ${p.total}`,
 }
 
-// Pantalla prendida mientras baja: bloqueada, el iPhone corta la descarga. Si el teléfono no lo permite no pasa
-// nada: la pantalla igual pide dejarla prendida. Se suelta al salir de la app: se vuelve a pedir al volver.
-function useKeepAwake(on) {
+function useRun() {
+  const [run, setRun] = useState(prepareRun.get)
   useEffect(() => {
-    if (!on) return
-    let alive = true, lock = null
-    const take = () => navigator.wakeLock?.request('screen').then((l) => (alive ? (lock = l) : l.release()), () => {})
-    const back = () => document.visibilityState === 'visible' && take()
-    take()
-    document.addEventListener('visibilitychange', back)
-    return () => {
-      alive = false
-      lock?.release().catch(() => {})
-      document.removeEventListener('visibilitychange', back)
-    }
-  }, [on])
+    setRun(prepareRun.get())
+    return prepareRun.subscribe(setRun)
+  }, [])
+  return run
+}
+
+// Avance en todas las pestañas, y la pregunta para seguir después de salir de la app (src/prepare/run.js).
+export function PrepareBar({ tab }) {
+  const run = useRun()
+  if (!run.running) return null
+  const p = run.prog
+  return (
+    <>
+      {run.ask && (
+        <div class="card stack ask" role="alertdialog" aria-label="Seguir la descarga">
+          <h2>¿Seguir la descarga?</h2>
+          <p>Faltan hasta unos {run.ask.mb} MB. Con wifi no gasta datos del plan; con 4G o 5G, sí.</p>
+          <div class="row">
+            <button class="btn primary" onClick={prepareRun.proceed}>Seguir</button>
+            <button class="btn" onClick={prepareRun.stop}>Ahora no</button>
+          </div>
+        </div>
+      )}
+      {tab !== 'preparar' && (
+        <Link class="banner remind" href={`/t/${run.tripId}/preparar`}>
+          {run.ask ? 'Descarga en pausa' : STEP[p?.step]?.(p)}
+          {p?.total ? <progress class="bar" value={p.done} max={p.total} /> : null}
+        </Link>
+      )}
+    </>
+  )
 }
 
 export function Prepare({ trip, tripId }) {
   const [status, setStatus] = useState(undefined)
   const [guarded, setGuarded] = useState(null) // lo guardado está protegido de que el teléfono lo borre; null: no se sabe
-  const [prog, setProg] = useState(null)
-  const [error, setError] = useState(null)
-  useEffect(() => { localGet(statusKey(tripId)).then((s) => setStatus(s ?? null), () => setStatus(null)) }, [tripId])
+  const { running, prog, error } = useRun()
+  // También al terminar una descarga y al volver a esta pantalla con una en curso (el avance se guarda cada 300 teselas).
+  useEffect(() => { localGet(statusKey(tripId)).then((s) => setStatus(s ?? null), () => setStatus(null)) }, [tripId, running])
   useEffect(() => { navigator.storage?.persisted?.().then(setGuarded, () => {}) }, [])
-  useKeepAwake(!!prog)
 
   const region = regionFor(trip.lat, trip.lon)
   const configured = !!import.meta.env.VITE_MAP_BASE_URL
   const tileCount = useMemo(() => depthTiles(trip).length, [trip.lat, trip.lon])
   const satCount = useMemo(() => satTiles(trip).length, [trip.lat, trip.lon])
 
-  // Minutos que faltan del satélite, con la velocidad de los últimos 15 s de esta descarga
-  // (lo que ya estaba guardado pasa enseguida y no dice cuánto tarda el resto).
-  const satStart = useRef(null)
-  const onProgress = (p) => {
-    if (p.step !== 'sat') return setProg(p)
-    const t = Date.now(), e = (satStart.current ??= { t, done: p.done, left: null })
-    const secs = (t - e.t) / 1000
-    if (secs >= 15) {
-      const rate = (p.done - e.done) / secs
-      Object.assign(e, { t, done: p.done, left: rate > 0 ? Math.ceil((p.total - p.done) / rate / 60) : null })
-    }
-    setProg(e.left ? { ...p, left: e.left } : p)
-  }
-
-  const run = async (withSat) => {
-    if (prog) return
-    satStart.current = null
+  const start = (withSat) => {
+    if (running) return
     // Pedir que el navegador no borre lo guardado (spec §3.4), cada vez: puede no darlo la primera.
     navigator.storage?.persist?.().then(setGuarded, () => {})
-    setError(null)
-    setProg({ step: 'forecast' })
-    try {
-      setStatus(await prepareTrip({ ...trip, id: tripId }, { onProgress, withSat }))
-    } catch (e) {
-      setError(`No se pudo terminar: ${e.message || e}. Tocá de nuevo y sigue desde donde quedó.`)
-    } finally {
-      setProg(null)
-    }
+    prepareRun.start({ ...trip, id: tripId }, withSat)
   }
 
   const s = status
@@ -109,7 +104,7 @@ export function Prepare({ trip, tripId }) {
         <p class="muted small">Conviene hacerlo con wifi.</p>
       </div>
 
-      {prog ? (
+      {running ? (
         <button class="btn big primary" disabled>Preparando…</button>
       ) : (
         <div class="card stack">
@@ -118,30 +113,30 @@ export function Prepare({ trip, tripId }) {
             Ocupa unos {SAT_MB_ESTIMATED} MB más y con wifi tarda unos {satMinutes(satCount)} minutos (medido en una prueba;
             si ya bajaste una parte, menos). Sin satélite el mapa igual tiene calles, costa y profundidad.
           </p>
-          <button class="btn big primary" onClick={() => run(true)} disabled={s === undefined}>
+          <button class="btn big primary" onClick={() => start(true)} disabled={s === undefined}>
             {s ? 'Actualizar' : 'Preparar'} con satélite (~{satMinutes(satCount)} min)
           </button>
-          <button class="btn big" onClick={() => run(false)} disabled={s === undefined}>
+          <button class="btn big" onClick={() => start(false)} disabled={s === undefined}>
             {s ? 'Actualizar' : 'Preparar'} sin satélite
           </button>
         </div>
       )}
-      {prog && (
+      {running && prog && (
         <div class="card" aria-live="polite">
           <p>{STEP[prog.step]?.(prog)}</p>
-          <p class="muted small">Dejá la app abierta y la pantalla prendida. Si se corta, tocá Actualizar y sigue desde donde quedó.</p>
+          <p class="muted small">Podés usar las otras pestañas, con la pantalla prendida. Si salís de la app se frena y al volver te pregunta si seguir. Si la cerrás, tocá Actualizar y sigue desde donde quedó.</p>
           {prog.total ? <progress class="bar" value={prog.done} max={prog.total} /> : <progress class="bar" />}
         </div>
       )}
-      {error && <p class="error">{error}</p>}
+      {error && <p class="error">No se pudo terminar: {error}. Tocá de nuevo y sigue desde donde quedó.</p>}
 
       {s && (
         <div class="card">
-          {needsSatMove(s) && !prog && (
+          {needsSatMove(s) && !running && (
             <p class="error">Para que la app abra rápido, tocá “Actualizar con satélite”: pasa lo ya bajado a otro lugar del teléfono, sin volver a bajarlo.</p>
           )}
           {zoneChanged(trip, s) && <p class="error">La zona ahora es de 250 km: tocá Actualizar para bajar lo que falta.</p>}
-          {!prog && !isReady(s) && s.missing.length === 0 && !zoneChanged(trip, s) && (
+          {!running && !isReady(s) && s.missing.length === 0 && !zoneChanged(trip, s) && (
             <p class="error">Se cortó antes de terminar: tocá Actualizar y sigue desde donde quedó.</p>
           )}
           {isReady(s) && !zoneChanged(trip, s) && (
@@ -183,18 +178,20 @@ export function Prepare({ trip, tripId }) {
 // Cartel en TripShell (spec §2.9). Se relee al cambiar de pestaña, así desaparece después de preparar.
 export function PrepareBanner({ trip, tripId, tab }) {
   const [show, setShow] = useState(null) // null | el texto del cartel
+  const { running } = useRun()
   useEffect(() => {
     let alive = true
     localGet(statusKey(tripId))
       .then((s) => alive && setShow(
         needsSatMove(s) ? 'La app abre lenta: tocá acá y después “Actualizar con satélite” →'
+          : needsResume(s) ? 'La descarga quedó a medias: tocá acá para seguir →'
           : needsReminder(trip, s ?? null, nowLocalIso()) ? 'Falta poco para el viaje: prepará el teléfono para usar la app sin señal →'
           : null,
       ))
       .catch(() => {})
     return () => { alive = false }
-  }, [tripId, tab, trip.start_date, trip.end_date])
-  if (!show || tab === 'preparar') return null
+  }, [tripId, tab, running, trip.start_date, trip.end_date])
+  if (!show || running || tab === 'preparar') return null
   return (
     <Link class="banner remind" href={`/t/${tripId}/preparar`}>{show}</Link>
   )

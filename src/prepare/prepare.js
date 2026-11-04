@@ -58,8 +58,10 @@ export const isReady = (s) => !!s && s.missing.length === 0 && !!s.dataAt && ful
 // Mientras se vuelve a revisar, lo guardado no baja: las teselas siguen ahí aunque todavía no se hayan recontado.
 // Hay satélite guardado a la manera vieja (sat-v1): la app tarda en abrir hasta que se pasa a IndexedDB.
 export const needsSatMove = (s) => !!s?.sat && !s.satDb
+// Una descarga quedó a medias, por ejemplo porque se cerró la app.
+export const needsResume = (s) => !!s && (!full(s.depth) || (!!s.sat && !full(s.sat)))
 const atLeast = (cur, low) => (cur && low?.total === cur.total && low.done > cur.done ? { ...cur, done: low.done } : cur)
-const why = (e) => (e?.name === 'QuotaExceededError' ? 'sin espacio en el teléfono' : 'sin señal o se cortó')
+const why = (e) => (e?.name === 'QuotaExceededError' ? 'sin espacio en el teléfono' : e?.name === 'PausedError' ? 'la pausaste' : 'sin señal o se cortó')
 
 function supabaseDeps(tripId) {
   const client = makeClient(tripId)
@@ -80,11 +82,12 @@ async function cacheOnce(cache, url, fetchImpl) {
 // De a DEPTH_PARALLEL. Una tesela que falla se saltea y se reintenta la próxima vez (lo ya guardado en
 // la caché no se vuelve a pedir). Si falla una tanda entera (sin señal o sin espacio) se corta ahí.
 // prog = {done, total} (done = teselas guardadas). Devuelve el texto para "missing", o null si están todas.
-async function cacheTiles(open, urls, fetchImpl, prog, onBatch) {
+async function cacheTiles(open, urls, fetchImpl, prog, onBatch, beforeBatch) {
   let failed = 0, lastError = null
   try {
     const cache = await open()
     for (let i = 0; i < urls.length; i += DEPTH_PARALLEL) {
+      await beforeBatch()
       const batch = await Promise.allSettled(urls.slice(i, i + DEPTH_PARALLEL).map((u) => cacheOnce(cache, u, fetchImpl)))
       const bad = batch.filter((r) => r.status === 'rejected')
       prog.done += batch.length - bad.length
@@ -117,6 +120,7 @@ export async function prepareTrip(trip, opts = {}) {
     tiles = depthTiles(trip),
     sat = satTiles(trip),
     withSat = true, // la persona elige si baja el satélite (~145 MB)
+    beforeBatch = async () => {}, // espera (o corta, si rechaza) antes de cada tanda: ver src/prepare/run.js
     now = Date.now,
   } = opts
   const iso = () => new Date(now()).toISOString()
@@ -163,6 +167,7 @@ export async function prepareTrip(trip, opts = {}) {
   else {
     s.regionAt = null
     try {
+      await beforeBatch()
       onProgress({ step: 'region', done: 0, total: region.bytes ?? 0 })
       await downloadRegion(region, (p) => onProgress({ step: 'region', ...p }), { fetch: fetchImpl, set, baseUrl: mapBaseUrl, stallMs: FETCH_TIMEOUT_MS })
       s.regionAt = iso()
@@ -173,7 +178,7 @@ export async function prepareTrip(trip, opts = {}) {
   await save()
 
   // 3. Profundidad y satélite.
-  const depthMiss = await cacheTiles(() => cachesImpl.open(DEPTH_CACHE), tiles.map(depthTileUrl), fetchImpl, s.depth, tick('depth', s.depth))
+  const depthMiss = await cacheTiles(() => cachesImpl.open(DEPTH_CACHE), tiles.map(depthTileUrl), fetchImpl, s.depth, tick('depth', s.depth), beforeBatch)
   floor.depth = null
   if (depthMiss) s.missing.push(`Profundidad: ${depthMiss}`)
   await save()
@@ -181,7 +186,8 @@ export async function prepareTrip(trip, opts = {}) {
     // Lo que un teléfono ya bajó en sat-v1 (hasta el 4/11) se copia sin volver a pedirlo; sat-v1 se borra al final.
     const old = await cachesImpl?.has(SAT_CACHE).then((yes) => (yes ? cachesImpl.open(SAT_CACHE) : null)).catch(() => null)
     const satFetch = old ? async (url, o) => (await old.match(url, { ignoreVary: true })) ?? fetchImpl(url, o) : fetchImpl
-    const satMiss = await cacheTiles(async () => satStore, sat.map(satTileUrl), satFetch, s.sat, tick('sat', s.sat))
+    s.satDb = !old // sin sat-v1 todo lo bajado ya está en IndexedDB, aunque esta corrida se corte
+    const satMiss = await cacheTiles(async () => satStore, sat.map(satTileUrl), satFetch, s.sat, tick('sat', s.sat), beforeBatch)
     floor.sat = null
     if (satMiss) s.missing.push(`Satélite: ${satMiss}`)
     else if (old) await cachesImpl.delete(SAT_CACHE).catch(() => {})

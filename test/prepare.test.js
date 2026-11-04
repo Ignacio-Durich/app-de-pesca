@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { prepareTrip, needsReminder, zoneChanged, isReady, needsSatMove, statusKey, depthTiles, satTiles, satMinutes } from '../src/prepare/prepare.js'
+import { prepareTrip, needsReminder, zoneChanged, isReady, needsSatMove, needsResume, statusKey, depthTiles, satTiles, satMinutes } from '../src/prepare/prepare.js'
 import regions from '../src/data/regions.json'
 
 const trip = { id: 't1', lat: -40.5512, lon: -62.2349, start_date: '2026-11-07', end_date: '2026-11-08' }
@@ -132,6 +132,8 @@ describe('prepareTrip', () => {
     expect(d.caches.stores.has('sat-v1')).toBe(false)
   })
 
+  const manySat = (n) => Array.from({ length: n }, (_, i) => ({ z: 13, x: 3000 + i, y: 5086 }))
+
   const satUrl = (x) => `https://tiles.maps.eox.at/wmts/1.0.0/s2cloudless-2025_3857/default/g/13/5086/${x}.jpg`
 
   it('copies what is in the old sat-v1 without downloading it, then deletes that cache', async () => {
@@ -173,6 +175,32 @@ describe('prepareTrip', () => {
     expect(needsSatMove(s)).toBe(true)
   })
 
+  it('a first download cut half way is not taken as old satellite to move', async () => {
+    const d = deps({ sat: manySat(400) })
+    let saved = null
+    await prepareTrip(trip, {
+      ...d,
+      fetch: recorder().fetchImpl,
+      onProgress: (p) => { if (p.step === 'sat' && p.done >= 360) saved ??= d.store.get(statusKey(trip.id)) },
+    })
+    expect(needsSatMove(saved)).toBe(false)
+  })
+
+  it('waits at each batch and a pause stops the tiles without losing what is saved', async () => {
+    const d = deps({ sat: manySat(12) })
+    let batches = 0
+    const paused = Object.assign(new Error('pausada'), { name: 'PausedError' })
+    const s = await prepareTrip(trip, {
+      ...d,
+      fetch: recorder().fetchImpl,
+      beforeBatch: async () => { if (++batches > 3) throw paused },
+    })
+    expect(s.depth).toEqual({ done: 10, total: 10 })
+    expect(s.sat).toEqual({ done: 6, total: 12 })
+    expect(s.missing.join(' ')).toMatch(/Satélite: 6 de 12 teselas \(la pausaste\)/)
+    expect(s.dataAt).not.toBeNull()
+  })
+
   it('keeps the satDb mark when a later update skips the satellite', async () => {
     const d = deps({ sat: [{ z: 13, x: 1, y: 5086 }] })
     await prepareTrip(trip, { ...d, fetch: recorder().fetchImpl })
@@ -190,8 +218,6 @@ describe('prepareTrip', () => {
     expect(s.sat).toBeNull()
     expect(s.missing.join(' ')).not.toMatch(/Satélite/)
   })
-
-  const manySat = (n) => Array.from({ length: n }, (_, i) => ({ z: 13, x: 3000 + i, y: 5086 }))
 
   it('a cut Actualizar keeps the saved counts: re-checking starts low but the tiles are still there', async () => {
     const SAT = manySat(8)
@@ -254,6 +280,17 @@ describe('prepareTrip', () => {
     const s = await prepareTrip(trip, { ...d, fetch: recorder().fetchImpl })
     expect(s.dataAt).toBeNull()
     expect(s.missing.join(' ')).toMatch(/Datos del viaje/)
+  })
+})
+
+describe('needsResume', () => {
+  it('is true only when tiles stayed half way', () => {
+    const d = { done: 2, total: 2 }
+    expect(needsResume(null)).toBe(false)
+    expect(needsResume({ depth: d, sat: null })).toBe(false)
+    expect(needsResume({ depth: d, sat: d })).toBe(false)
+    expect(needsResume({ depth: { done: 1, total: 2 }, sat: null })).toBe(true)
+    expect(needsResume({ depth: d, sat: { done: 1, total: 2 } })).toBe(true)
   })
 })
 
