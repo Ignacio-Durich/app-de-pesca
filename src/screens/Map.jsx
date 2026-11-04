@@ -10,8 +10,8 @@ import { findExtremes } from '../forecast/tides.js'
 import { dec, dayLabel } from '../forecast/view.js'
 import { conditionsAt } from '../catches/conditions.js'
 import { regionFor, basemapLayer } from '../map/basemap.js'
-import { DEPTH_CACHE, SAT_TEMPLATE, SAT_ATTRIBUTION } from '../map/tiles.js'
-import { SAT_ZMAX, DEPTH_RADIUS_KM, STEP_TIMEOUT_MS } from '../prepare/prepare.js'
+import { DEPTH_CACHE } from '../map/tiles.js'
+import { DEPTH_RADIUS_KM, STEP_TIMEOUT_MS } from '../prepare/prepare.js'
 import { withTimeout } from '../lib/timeout.js'
 import { toDegMin, within, distanceBearing } from '../map/nav.js'
 import { depthAt, soundingDatum, bandColor, BANDS, BAND_M, BAND_ALPHA } from '../map/depth.js'
@@ -84,19 +84,19 @@ export function MapScreen({ trip, me, tripId }) {
     let alive = true, map
     ;(async () => {
       const mods = await Promise.all([
-        import('leaflet'), import('../map/depthLayer.js'), openDepth(), import('leaflet/dist/leaflet.css'),
+        import('leaflet'), import('../map/depthLayer.js'), openDepth(), import('../map/satLayer.js'), import('leaflet/dist/leaflet.css'),
       ]).catch(() => null)
       if (!alive) return
       // Sin el código del mapa (app sin cachear y sin señal): aviso en vez de un mapa en blanco.
       if (!mods) return setLoadErr(true)
-      const [{ default: L }, { depthLayer }, cache] = mods
+      const [{ default: L }, { depthLayer }, cache, { satLayer }] = mods
       window.L ??= L
       map = L.map(el.current, { maxZoom: MAX_ZOOM }).setView([trip.lat, trip.lon], START_ZOOM)
       map.attributionControl.addAttribution(DEPTH_ATTRIBUTION)
       const g = { L, map, cache, depth: cache && depthLayer(cache) }
       g.depth?.setZIndex(2)
-      // Arriba del mapa base (0) y debajo de la profundidad (2). Más allá de z13 agranda la z13.
-      g.sat = L.tileLayer(SAT_TEMPLATE, { maxNativeZoom: SAT_ZMAX, maxZoom: MAX_ZOOM, zIndex: 1, crossOrigin: true, attribution: SAT_ATTRIBUTION })
+      // Arriba del mapa base (0) y debajo de la profundidad (2).
+      g.sat = satLayer(MAX_ZOOM).setZIndex(1)
       for (const k of ['spotsG', 'soundG', 'meG']) g[k] = L.layerGroup().addTo(map)
       map.on('click', async (e) => {
         const popup = L.popup().setLatLng(e.latlng).setContent('Profundidad: …').openOn(map)

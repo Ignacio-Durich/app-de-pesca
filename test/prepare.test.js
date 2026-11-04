@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { prepareTrip, needsReminder, zoneChanged, isReady, statusKey, depthTiles, satTiles, satMinutes } from '../src/prepare/prepare.js'
+import { prepareTrip, needsReminder, zoneChanged, isReady, needsSatMove, statusKey, depthTiles, satTiles, satMinutes } from '../src/prepare/prepare.js'
 import regions from '../src/data/regions.json'
 
 const trip = { id: 't1', lat: -40.5512, lon: -62.2349, start_date: '2026-11-07', end_date: '2026-11-08' }
@@ -7,17 +7,24 @@ const TILES = Array.from({ length: 10 }, (_, i) => ({ z: 12, x: 1000 + i, y: 200
 const isDepth = (u) => u.includes('/terrarium/')
 const PHOTO = (p) => `https://x.test/storage/v1/object/public/catch-photos/${p}`
 
-// Cache API en memoria: alcanza con open/match/put.
+// Cache API en memoria: alcanza con has/delete/open/match/put.
 function fakeCaches() {
   const stores = new Map()
   return {
     stores,
+    has: async (name) => stores.has(name),
+    delete: async (name) => stores.delete(name),
     open: async (name) => {
       if (!stores.has(name)) stores.set(name, new Map())
       const m = stores.get(name)
       return { match: async (u) => m.get(u), put: async (u, r) => void m.set(u, r) }
     },
   }
+}
+// La base de IndexedDB del satélite (src/map/satStore.js) en memoria.
+function fakeSatStore() {
+  const tiles = new Map()
+  return { tiles, match: async (u) => tiles.get(u), put: async (u, r) => void tiles.set(u, await r.text()) }
 }
 function recorder(failWhen = () => false) {
   const calls = []
@@ -33,6 +40,7 @@ function deps(extra = {}) {
   return {
     store,
     caches: fakeCaches(),
+    satStore: fakeSatStore(),
     get: async (k) => store.get(k),
     set: async (k, v) => void store.set(k, structuredClone(v)), // copia, como IndexedDB
     getForecast: async () => ({ forecast: { fetchedAt: '2026-11-05T11:00:00.000Z' }, ageHours: 0 }),
@@ -112,7 +120,7 @@ describe('prepareTrip', () => {
     expect(r.calls).toContain('https://maps.test/san-blas.pmtiles')
   })
 
-  it('saves the satellite tiles in sat-v1 and lists the missing ones', async () => {
+  it('saves the satellite tiles in IndexedDB, not in the Cache API, and lists the missing ones', async () => {
     const SAT = [{ z: 13, x: 2681, y: 5086 }, { z: 13, x: 2682, y: 5086 }]
     const d = deps({ sat: SAT })
     const r = recorder((u) => u.includes('/13/5086/2682.jpg'))
@@ -120,6 +128,57 @@ describe('prepareTrip', () => {
     expect(r.calls).toContain('https://tiles.maps.eox.at/wmts/1.0.0/s2cloudless-2025_3857/default/g/13/5086/2681.jpg')
     expect(s.sat).toEqual({ done: 1, total: 2 })
     expect(s.missing.join(' ')).toMatch(/Satélite: 1 de 2 teselas, 1 con error/)
+    expect(d.satStore.tiles.size).toBe(1)
+    expect(d.caches.stores.has('sat-v1')).toBe(false)
+  })
+
+  const satUrl = (x) => `https://tiles.maps.eox.at/wmts/1.0.0/s2cloudless-2025_3857/default/g/13/5086/${x}.jpg`
+
+  it('copies what is in the old sat-v1 without downloading it, then deletes that cache', async () => {
+    const d = deps({ sat: [{ z: 13, x: 1, y: 5086 }, { z: 13, x: 2, y: 5086 }] })
+    const old = await d.caches.open('sat-v1')
+    await old.put(satUrl(1), new Response('viejo'))
+    const r = recorder()
+    const s = await prepareTrip(trip, { ...d, fetch: r.fetchImpl })
+    expect(r.calls.filter((u) => u.includes('eox.at'))).toEqual([satUrl(2)])
+    expect(d.satStore.tiles.get(satUrl(1))).toBe('viejo')
+    expect(s.sat).toEqual({ done: 2, total: 2 })
+    expect(s.satDb).toBe(true)
+    expect(d.caches.stores.has('sat-v1')).toBe(false)
+  })
+
+  it('a cut copy keeps the old sat-v1 and picks up where it stopped', async () => {
+    const d = deps({ sat: [{ z: 13, x: 1, y: 5086 }, { z: 13, x: 2, y: 5086 }] })
+    const old = await d.caches.open('sat-v1')
+    await old.put(satUrl(1), new Response('viejo'))
+    const s1 = await prepareTrip(trip, { ...d, fetch: recorder((u) => u.includes('eox.at')).fetchImpl })
+    expect(s1.sat).toEqual({ done: 1, total: 2 })
+    expect(s1.satDb).toBe(false)
+    expect(d.caches.stores.has('sat-v1')).toBe(true)
+    const again = recorder()
+    const s2 = await prepareTrip(trip, { ...d, fetch: again.fetchImpl })
+    expect(again.calls.filter((u) => u.includes('eox.at'))).toEqual([satUrl(2)])
+    expect(s2.satDb).toBe(true)
+    expect(d.caches.stores.has('sat-v1')).toBe(false)
+  })
+
+  it('updating without satellite leaves the old sat-v1 alone and still asks to move it', async () => {
+    const d = deps({ sat: [{ z: 13, x: 1, y: 5086 }] })
+    d.store.set(statusKey(trip.id), { sat: { done: 1, total: 1 } })
+    const old = await d.caches.open('sat-v1')
+    await old.put(satUrl(1), new Response('viejo'))
+    const s = await prepareTrip(trip, { ...d, fetch: recorder().fetchImpl, withSat: false })
+    expect(d.caches.stores.has('sat-v1')).toBe(true)
+    expect(d.satStore.tiles.size).toBe(0)
+    expect(needsSatMove(s)).toBe(true)
+  })
+
+  it('keeps the satDb mark when a later update skips the satellite', async () => {
+    const d = deps({ sat: [{ z: 13, x: 1, y: 5086 }] })
+    await prepareTrip(trip, { ...d, fetch: recorder().fetchImpl })
+    const s = await prepareTrip(trip, { ...d, fetch: recorder().fetchImpl, withSat: false })
+    expect(s.satDb).toBe(true)
+    expect(needsSatMove(s)).toBe(false)
   })
 
   it('skips the satellite when the person chose not to download it', async () => {
@@ -164,7 +223,7 @@ describe('prepareTrip', () => {
     const SAT = manySat(2)
     const d = deps({ sat: SAT })
     await prepareTrip(trip, { ...d, fetch: recorder().fetchImpl })
-    d.caches = fakeCaches()
+    d.satStore = fakeSatStore()
     const s = await prepareTrip(trip, { ...d, fetch: recorder((u) => u.includes('eox.at')).fetchImpl })
     expect(s.sat).toEqual({ done: 0, total: 2 })
     expect(d.store.get(statusKey(trip.id)).sat).toEqual({ done: 0, total: 2 })
@@ -195,6 +254,15 @@ describe('prepareTrip', () => {
     const s = await prepareTrip(trip, { ...d, fetch: recorder().fetchImpl })
     expect(s.dataAt).toBeNull()
     expect(s.missing.join(' ')).toMatch(/Datos del viaje/)
+  })
+})
+
+describe('needsSatMove', () => {
+  it('asks only when there is satellite saved the old way', () => {
+    expect(needsSatMove(null)).toBe(false)
+    expect(needsSatMove({ sat: null })).toBe(false)
+    expect(needsSatMove({ sat: { done: 5, total: 5 } })).toBe(true)
+    expect(needsSatMove({ sat: { done: 5, total: 5 }, satDb: true })).toBe(false)
   })
 })
 

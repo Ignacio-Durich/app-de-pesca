@@ -23,7 +23,8 @@ export default defineConfig({
             options: { cacheName: 'depth-v1', matchOptions: { ignoreVary: true } },
           },
           {
-            // Satélite (src/map/tiles.js SAT_TEMPLATE): lo bajado en "Preparar viaje" y lo que se mira con señal.
+            // Satélite (src/map/tiles.js SAT_TEMPLATE) que no está en IndexedDB: lo que se mira con señal y lo que
+            // un teléfono bajó antes del 4/11 y todavía no copió ("Preparar viaje" lo pasa y borra este caché).
             urlPattern: /^https:\/\/tiles\.maps\.eox\.at\/wmts\//,
             handler: 'CacheFirst',
             options: { cacheName: 'sat-v1', matchOptions: { ignoreVary: true } },

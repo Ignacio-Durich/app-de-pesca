@@ -6,7 +6,7 @@ export const depthTileUrl = ({ z, x, y }) => `https://s3.amazonaws.com/elevation
 
 // Satélite: Sentinel-2 cloudless 2025 de EOX, 10 m por píxel. Licencia CC BY-NC-SA 4.0: uso no comercial
 // libre con atribución (cloudless.eox.at/documentation/license, consultado 30/10/2026). Ojo: va {y}/{x}.
-export const SAT_CACHE = 'sat-v1'
+export const SAT_CACHE = 'sat-v1' // solo lo que se mira con señal y lo viejo sin copiar: lo bajado va en src/map/satStore.js
 export const SAT_TEMPLATE = 'https://tiles.maps.eox.at/wmts/1.0.0/s2cloudless-2025_3857/default/g/{z}/{y}/{x}.jpg'
 export const SAT_ATTRIBUTION = 'Sentinel-2 cloudless - <a href="https://s2maps.eu">s2maps.eu</a> by EOX IT Services GmbH (Contains modified Copernicus Sentinel data 2025)'
 export const satTileUrl = ({ z, x, y }) => SAT_TEMPLATE.replace('{z}', z).replace('{y}', y).replace('{x}', x)

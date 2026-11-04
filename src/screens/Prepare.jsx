@@ -5,7 +5,7 @@ import { localGet } from '../lib/local.js'
 import { fromInstant } from '../lib/time.js'
 import { dayLabel, dec } from '../forecast/view.js'
 import { regionFor } from '../map/basemap.js'
-import { prepareTrip, needsReminder, zoneChanged, isReady, statusKey, depthTiles, satTiles, DEPTH_MB_PER_TILE, SAT_MB_ESTIMATED, satMinutes } from '../prepare/prepare.js'
+import { prepareTrip, needsReminder, needsSatMove, zoneChanged, isReady, statusKey, depthTiles, satTiles, DEPTH_MB_PER_TILE, SAT_MB_ESTIMATED, satMinutes } from '../prepare/prepare.js'
 
 const nowTrip = () => fromInstant(new Date().toISOString())
 const nowLocalIso = () => { const n = nowTrip(); return `${n.date}T${n.time}` }
@@ -137,6 +137,9 @@ export function Prepare({ trip, tripId }) {
 
       {s && (
         <div class="card">
+          {needsSatMove(s) && !prog && (
+            <p class="error">Para que la app abra rápido, tocá “Actualizar con satélite”: pasa lo ya bajado a otro lugar del teléfono, sin volver a bajarlo.</p>
+          )}
           {zoneChanged(trip, s) && <p class="error">La zona ahora es de 250 km: tocá Actualizar para bajar lo que falta.</p>}
           {!prog && !isReady(s) && s.missing.length === 0 && !zoneChanged(trip, s) && (
             <p class="error">Se cortó antes de terminar: tocá Actualizar y sigue desde donde quedó.</p>
@@ -179,19 +182,21 @@ export function Prepare({ trip, tripId }) {
 
 // Cartel en TripShell (spec §2.9). Se relee al cambiar de pestaña, así desaparece después de preparar.
 export function PrepareBanner({ trip, tripId, tab }) {
-  const [show, setShow] = useState(false)
+  const [show, setShow] = useState(null) // null | el texto del cartel
   useEffect(() => {
     let alive = true
     localGet(statusKey(tripId))
-      .then((s) => alive && setShow(needsReminder(trip, s ?? null, nowLocalIso())))
+      .then((s) => alive && setShow(
+        needsSatMove(s) ? 'La app abre lenta: tocá acá y después “Actualizar con satélite” →'
+          : needsReminder(trip, s ?? null, nowLocalIso()) ? 'Falta poco para el viaje: prepará el teléfono para usar la app sin señal →'
+          : null,
+      ))
       .catch(() => {})
     return () => { alive = false }
   }, [tripId, tab, trip.start_date, trip.end_date])
   if (!show || tab === 'preparar') return null
   return (
-    <Link class="banner remind" href={`/t/${tripId}/preparar`}>
-      Falta poco para el viaje: prepará el teléfono para usar la app sin señal →
-    </Link>
+    <Link class="banner remind" href={`/t/${tripId}/preparar`}>{show}</Link>
   )
 }
 

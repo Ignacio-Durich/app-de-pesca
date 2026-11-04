@@ -8,6 +8,7 @@ import { withTimeout, timeoutSignal } from '../lib/timeout.js'
 import { parseLocal, fromInstant } from '../lib/time.js'
 import { regionFor, regionKey, downloadRegion } from '../map/basemap.js'
 import { tilesInRadius, depthTileUrl, DEPTH_CACHE, satTileUrl, SAT_CACHE } from '../map/tiles.js'
+import { satStore as defaultSatStore } from '../map/satStore.js'
 
 // [diseño] spec §3.4: teselas de profundidad de zoom 8 a 10 en un radio de 250 km (el grupo hace más de
 // 4 h de viaje por día; OSRM, 30/10: Bahía Blanca 4,4 h, Caleta de los Loros 4,2 h, Las Grutas 4,4 h,
@@ -55,6 +56,8 @@ export const zoneChanged = (trip, status) =>
 const full = (p) => !!p && p.done === p.total
 export const isReady = (s) => !!s && s.missing.length === 0 && !!s.dataAt && full(s.depth) && (!s.sat || full(s.sat))
 // Mientras se vuelve a revisar, lo guardado no baja: las teselas siguen ahí aunque todavía no se hayan recontado.
+// Hay satélite guardado a la manera vieja (sat-v1): la app tarda en abrir hasta que se pasa a IndexedDB.
+export const needsSatMove = (s) => !!s?.sat && !s.satDb
 const atLeast = (cur, low) => (cur && low?.total === cur.total && low.done > cur.done ? { ...cur, done: low.done } : cur)
 const why = (e) => (e?.name === 'QuotaExceededError' ? 'sin espacio en el teléfono' : 'sin señal o se cortó')
 
@@ -77,10 +80,10 @@ async function cacheOnce(cache, url, fetchImpl) {
 // De a DEPTH_PARALLEL. Una tesela que falla se saltea y se reintenta la próxima vez (lo ya guardado en
 // la caché no se vuelve a pedir). Si falla una tanda entera (sin señal o sin espacio) se corta ahí.
 // prog = {done, total} (done = teselas guardadas). Devuelve el texto para "missing", o null si están todas.
-async function cacheTiles(cachesImpl, name, urls, fetchImpl, prog, onBatch) {
+async function cacheTiles(open, urls, fetchImpl, prog, onBatch) {
   let failed = 0, lastError = null
   try {
-    const cache = await cachesImpl.open(name)
+    const cache = await open()
     for (let i = 0; i < urls.length; i += DEPTH_PARALLEL) {
       const batch = await Promise.allSettled(urls.slice(i, i + DEPTH_PARALLEL).map((u) => cacheOnce(cache, u, fetchImpl)))
       const bad = batch.filter((r) => r.status === 'rejected')
@@ -96,7 +99,7 @@ async function cacheTiles(cachesImpl, name, urls, fetchImpl, prog, onBatch) {
   return prog.done < prog.total ? `${prog.done} de ${prog.total} teselas${failed ? `, ${failed} con error` : ''} (${why(lastError)})` : null
 }
 
-// PrepareStatus = {forecastAt, regionAt, regionNote, depth: {done, total}, sat: {done, total} | null (no lo eligió), dataAt, photos: {done, total}, missing: string[]}
+// PrepareStatus = {forecastAt, regionAt, regionNote, depth: {done, total}, sat: {done, total} | null (no lo eligió), satDb: el satélite ya está todo en IndexedDB, dataAt, photos: {done, total}, missing: string[]}
 // Se guarda en prepare:<tripId> después de cada paso. onProgress({step, done?, total?}).
 export async function prepareTrip(trip, opts = {}) {
   const sb = opts.pull && opts.photoUrl ? {} : supabaseDeps(trip.id)
@@ -104,6 +107,7 @@ export async function prepareTrip(trip, opts = {}) {
     onProgress = () => {},
     fetch: fetchImpl = globalThis.fetch,
     caches: cachesImpl = globalThis.caches,
+    satStore = defaultSatStore,
     getForecast = defaultGetForecast,
     pull = sb.pull,
     photoUrl = sb.photoUrl,
@@ -124,6 +128,7 @@ export async function prepareTrip(trip, opts = {}) {
     depth: { done: 0, total: tiles.length },
     // Sin satélite no se toca lo que ya se haya bajado.
     sat: withSat ? { done: 0, total: sat.length } : prev.sat ?? null,
+    satDb: prev.satDb === true,
     dataAt: prev.dataAt ?? null,
     photos: { done: 0, total: 0 },
     missing: [],
@@ -168,14 +173,19 @@ export async function prepareTrip(trip, opts = {}) {
   await save()
 
   // 3. Profundidad y satélite.
-  const depthMiss = await cacheTiles(cachesImpl, DEPTH_CACHE, tiles.map(depthTileUrl), fetchImpl, s.depth, tick('depth', s.depth))
+  const depthMiss = await cacheTiles(() => cachesImpl.open(DEPTH_CACHE), tiles.map(depthTileUrl), fetchImpl, s.depth, tick('depth', s.depth))
   floor.depth = null
   if (depthMiss) s.missing.push(`Profundidad: ${depthMiss}`)
   await save()
   if (withSat) {
-    const satMiss = await cacheTiles(cachesImpl, SAT_CACHE, sat.map(satTileUrl), fetchImpl, s.sat, tick('sat', s.sat))
+    // Lo que un teléfono ya bajó en sat-v1 (hasta el 4/11) se copia sin volver a pedirlo; sat-v1 se borra al final.
+    const old = await cachesImpl?.has(SAT_CACHE).then((yes) => (yes ? cachesImpl.open(SAT_CACHE) : null)).catch(() => null)
+    const satFetch = old ? async (url, o) => (await old.match(url, { ignoreVary: true })) ?? fetchImpl(url, o) : fetchImpl
+    const satMiss = await cacheTiles(async () => satStore, sat.map(satTileUrl), satFetch, s.sat, tick('sat', s.sat))
     floor.sat = null
     if (satMiss) s.missing.push(`Satélite: ${satMiss}`)
+    else if (old) await cachesImpl.delete(SAT_CACHE).catch(() => {})
+    s.satDb = !satMiss || !old
     await save()
   }
 
