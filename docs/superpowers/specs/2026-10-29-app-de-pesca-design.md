@@ -1,6 +1,6 @@
 # App de Pesca — Diseño
 
-Fecha: 2026-10-29 · Autor: Nacho (con Claude) · Datos verificados el 29/10/2026 (ver §9)
+Fecha: 2026-10-29 · Autor: Nacho (con Claude) · Datos verificados el 29/10/2026 (ver §9) · Fase 2 ampliada con "dónde pescar" el 11/11/2026 (ver §8 y §9.1)
 
 > **Convención:** todo dato del mundo real lleva su fuente en §9. Los números de diseño (umbrales, pesos, tiempos) se marcan **[diseño]**: son valores iniciales elegidos para arrancar, no datos medidos, y se ajustan con las capturas.
 
@@ -322,7 +322,13 @@ El offline no es una etapa aparte: cada pantalla se construye leyendo de los dat
 
 ## 8. Fase 2: pesca de río (después del 7/11)
 
-**Uso real:** el grupo pesca seguido en el Paraná de las Palmas a la altura de Lima (Zárate), embarcado y de costa. Nada de esta sección hace falta para San Blas. Se construye sobre los campos `water` y `night_fishing` que ya existen desde la fase 1.
+**Uso real:** el grupo pesca seguido en el Paraná de las Palmas a la altura de Lima (Zárate), embarcado y de costa. Pescan desde la costa de una chacra en Chacras del Paraná (Lima) o salen en lancha, incluso aguas arriba. Se construye sobre los campos `water` y `night_fishing` que ya existen desde la fase 1.
+
+**Dos partes (ampliado el 11/11/2026, a partir del comentario del 8/11 en la app):**
+1. **Que la app entienda el río (§8.1–8.5):** altura del INA en vez de marea, puntaje de "cuándo" en río, reglamento según la orilla, sondeos y spots.
+2. **Dónde pescar (§8.6):** recomienda pesqueros con puntaje y "por qué". Sirve en río y en mar, y necesita la parte 1 para el río.
+
+Lo verificado el 11/11 está en §9.1.
 
 ### 8.1 Altura del río en vez de marea de mar
 - **Fuente:** API pública del INA (sistema de alerta a5), JSON sin clave y con CORS abierto. Probada el 29/10:
@@ -337,11 +343,23 @@ El offline no es una etapa aparte: cada pantalla se construye leyendo de los dat
     - La API da para Zárate: alerta 2,0 m, evacuación 2,2 m y aguas bajas 0,3 m.
   - **Atucha** (localidad Lima según la API): estación 8208, serie 42645, una lectura por hora. **No tiene pronóstico**: la corrida del calibrado 440 solo trae la serie de Zárate.
   - **Campana** (41), **Escobar** (42) y **Zárate de Prefectura** (40): una lectura por día.
-- **Elección de estación:** al crear un viaje de río se elige sola la estación con altura del INA más cercana al lugar del viaje. Se puede cambiar. El pronóstico se toma de la estación más cercana que tenga uno (hoy, Zárate).
+- **Elección de estación (corregido el 11/11 al planificar):** el viaje usa **una sola estación, la más cercana que tenga pronóstico**. De ella salen la altura medida y el pronóstico, y con esa misma altura se guardan las capturas y se corrigen los sondeos. Así todo queda sobre el mismo cero y se puede comparar.
+  - Las estaciones con pronóstico viven en `src/data/stations.json`, con su id, sus series, coordenadas y niveles. Hoy hay una sola: **Zárate**, estación 5907, con la serie medida 29437 y el pronóstico 29534 del calibrado 440.
+  - Si no hay ninguna a menos de 60 km [diseño] del lugar, el viaje de río queda sin altura y con aviso. En ese caso, el puntaje de "cuándo" se arma solo con viento, presión, luna y clima.
+  - La corrida del pronóstico trae también los últimos ~6 días simulados, hora por hora. Para cada hora se usa la altura medida si existe, y si no, el valor `main` del pronóstico.
 - **Pantalla Pronóstico en río:** en vez de la curva de marea se ve la curva de altura (medida más pronóstico, con su banda) y las líneas de alerta y aguas bajas.
   - Se marcan los máximos y mínimos de la oscilación diaria.
   - **Tendencia de 3 días:** "creciendo", "estable" o "bajando", con los cm por día.
 - **Offline:** "Preparar viaje" guarda las alturas de los últimos 7 días y el último pronóstico, con su hora.
+- **Chacras del Paraná (verificado el 11/11):**
+  - Según OpenStreetMap queda en −33,968, −59,256, sobre la margen derecha del Paraná de las Palmas, cerca de la boca del río Areco y unos 4,5 km aguas arriba de Atucha I (−33,970, −59,206).
+  - La estación más cercana es **Atucha (8208)**, a 4,5 km, y el 11/11 seguía dando una lectura por hora. Pero no tiene pronóstico y su cero es distinto: a las 18:00 local daba 1,97 m y Zárate 0,78 m. Por eso no se usa (ver "Elección de estación").
+  - El pronóstico sale de Zárate: la corrida del calibrado 440 del 11/11 a las 12:00 local llega hasta el 14/11 a las 21:00 local, unos 3,5 días.
+  - La 8208 y la 151, las dos "Atucha", también difieren entre sí (1,97 y 2,07 m). Cada valor guardado lleva la serie de la que salió (`level_source`).
+- **Mapa base y satélite en río (agregado el 11/11 al planificar):** hace falta una región nueva, "Lima", en `regions.json`.
+  - El radio es de **100 km** alrededor del lugar [diseño], no 250: alcanza para subir en lancha hasta San Pedro (unos 55 km) y Ramallo (unos 85 km), y no mete toda la ciudad de Buenos Aires ni Rosario en el archivo.
+  - El tamaño del recorte se mide al extraerlo. Si pasa los 25 MiB va a R2, como San Blas.
+  - El satélite y los spots usan el mismo radio en río.
 
 ### 8.2 Puntaje en río (todo [diseño], igual que §4)
 - **Factor "agua"** (reemplaza a marea, 50%):
@@ -360,7 +378,7 @@ El offline no es una etapa aparte: cada pantalla se construye leyendo de los dat
 - **Uso:** se muestra en el día. En la guía de especies solo se agregan rangos de temperatura que tengan fuente.
 
 ### 8.4 Reglamento según la orilla
-- **Zonas:** cada zona es un polígono simplificado de jurisdicción con su reglamento. En Lima: margen de Buenos Aires e islas de Entre Ríos. El límite se dibuja aproximado, con un aviso.
+- **Zonas:** cada zona es un polígono simplificado de jurisdicción con su reglamento. En Lima, el límite entre Buenos Aires y Entre Ríos sale de los límites provinciales de OpenStreetMap (admin_level 4), simplificado. Al implementarlo se verifica, contra ese límite, qué orilla e islas son de cada provincia; el texto anterior ("margen de Buenos Aires e islas de Entre Ríos") no tenía fuente. El límite se dibuja aproximado, con un aviso.
 - **Uso:** la guía de especies y el aviso de licencia usan la zona según tu posición GPS (sin internet) o el lugar del viaje. A menos de 1 km del límite **[diseño]** se muestran las dos.
 - **Especies de río:**
   - **Con fuente para el tramo Zárate–Campana** (reportes de pesca): boga, dorado, bagre blanco y amarillo, armado, patí y surubí.
@@ -378,14 +396,94 @@ El offline no es una etapa aparte: cada pantalla se construye leyendo de los dat
 ### 8.5 Profundidad y spots en río
 - **Profundidad:** las teselas globales no tienen datos en el río, así que la capa se oculta en viajes de río. Los sondeos del grupo son la única fuente.
 - **Corrección de sondeos:** en río se descuenta la altura del INA de la estación del viaje, interpolada a la hora del sondeo, en vez de la marea. Se agrega `soundings.level_source text` (`marea` o `ina:<serie>`).
-- **Spots:** campo opcional "altura de río recomendada" (`spots.best_level_min_m`, `spots.best_level_max_m`). En el pronóstico se destacan los spots que entran en rango con la altura prevista.
+- **Spots:** campo opcional "altura de río recomendada" (`spots.best_level_min_m`, `spots.best_level_max_m`). §8.6 lo usa para puntuar.
+- **Capturas en río:** las condiciones de cada captura (§2.6) usan la altura del INA en vez de la marea.
+  - Se guarda en `tide_height_m`, igual que en los sondeos, y se agrega `catches.level_source text` (`marea` o `ina:<serie>`).
+  - La fase (`tide_phase`) sale de la oscilación diaria del río, con los mismos nombres que en mar: creciente, bajante, pleamar y bajamar.
 
-### 8.6 Fuera de alcance de la fase 2
-Tráfico de buques de la Hidrovía y cartas fluviales oficiales.
+### 8.6 Dónde pescar
+Responde el comentario del 8/11: *"Que nos ayude a encontrar dónde pescar además de cuándo… Que haga recomendaciones de lugares puntuándolo y por qué están puntuados así."*
 
-### 8.7 Pruebas de la fase 2
-- **Automáticas:** con una serie real de Zárate guardada como fixture, detectar la oscilación diaria, calcular la tendencia y aplicar el factor presión; elegir la estación más cercana; corregir un sondeo con la altura del INA; elegir la zona por punto, incluido el caso borde a menos de 1 km del límite.
-- **Manuales:** crear un viaje de río en Lima, preparar el viaje, ponerse en modo avión y ver altura, pronóstico, reglamento por zona y spots en rango.
+**Idea:** los lugares salen de dos fuentes, lo que carga el grupo y lo que dice una fuente citada. El puntaje combina el "cuándo" que ya existe con las reglas de cada lugar y con lo que el grupo ya pescó ahí. No se puntúan zonas del mapa sin dato.
+
+**Qué no entra, y por qué (verificado el 11/11, §9.1):**
+- **Corrientes:** Open-Meteo no tiene celdas en el río. En San Blas sus celdas miden 7 a 9 km, ven tierra en el pueblo y no resuelven el canal. Su propia documentación dice que en la costa la precisión es limitada. No hay otra fuente pública.
+- **Temperatura del agua:** en el río no hay serie (§8.3). En el mar, la de Open-Meteo usa la misma grilla de 8 km y no hay regla con fuente que la convierta en "mejor lugar".
+- **Profundidad del río:** no encontré batimetría pública descargable. Las cartas del SHN y el modelo de elevación del Delta del INA (2017) existen, pero no están para bajar. El Boletín Fluvial da un solo dato por tramo: el paso menos profundo del canal de navegación.
+- **Rasgos del río como regla** (boca de arroyo, vuelta, descarga de Atucha): no encontré fuente que diga que pescan mejor. Se pueden cargar como pesqueros comunes, pero no suman puntos por ser lo que son.
+
+**Datos del pesquero** (tabla `spots`, migración 004):
+- `access text` con valores `costa`, `embarcado` o `ambos`; si queda vacío, cuenta como `ambos`.
+- `source text`: la cita, con su link. Si queda vacío, lo cargó el grupo.
+- `best_tide` ya se elige de una lista en la app (`creciente`, `pleamar`, `bajante`, `bajamar` o vacío). La migración agrega un `check` con esos valores, y un valor viejo que no coincida pasa a `notes`.
+- Siguen igual el rango de altura (§8.5), las especies, las notas y quién lo cargó.
+
+**Puntaje del pesquero (todo [diseño], en `src/score/config.js`).** Se calcula para el día y el modo (costa o embarcado) elegidos. Entran los spots del radio del viaje cuyo `access` coincide con el modo.
+1. **Base:** el puntaje horario más alto del día (§4 en mar, §8.2 en río).
+   - Si el pesquero tiene `best_tide`, solo cuentan las horas en esa fase. Si no hay ninguna, la base es 0 con el motivo "hoy no le da el agua".
+   - La hora elegida y su ventana (§4 "Ventanas", sobre esas horas) se muestran como "anzuelos al agua" de ese lugar.
+2. **Altura (solo río, si el pesquero tiene rango):** si la altura pronosticada a esa hora queda fuera del rango, **−3** [diseño].
+   - Si ese día no tiene pronóstico de altura (pasado el horizonte de unos 3 días), no se aplica y se avisa "sin pronóstico de altura".
+3. **Lo que pescó el grupo:** se cuentan las capturas **de todos los viajes** a menos de **300 m** [diseño] del pesquero con condiciones parecidas a las de esa hora.
+   - Hoy cada captura solo se ve dentro de su viaje (RLS de §3.3). Para esto se agrega la función `catches_near(lat, lon, km)` (migración 004, `security definer`), que devuelve solo `species`, `caught_at`, `lat`, `lon`, `tide_phase`, `tide_height_m` y `level_source`, sin quién, foto ni viaje.
+   - Expone las posiciones y especies de las capturas a quien tenga la clave pública, igual que los spots hoy.
+   - "Preparar viaje" la guarda para usarla sin señal.
+   - Se cuentan las capturas con condiciones parecidas:
+   - en mar, la misma `tide_phase`;
+   - en río, una altura a menos de **0,2 m** [diseño] de la pronosticada.
+   - Con 1 o 2 capturas, **+1**; con 3 o más, **+2** [diseño].
+4. **Resultado:** queda entre 0 y 10, redondeado. Se ordena por puntaje y, si empatan, por cercanía al lugar del viaje.
+
+**Aviso fijo en la pantalla:** "Al principio casi todos los lugares tienen el mismo puntaje: solo los distinguen sus reglas y lo que pesquen ustedes. Carguen las capturas en el lugar donde salieron."
+
+**"Por qué":** una línea por cada término que sumó o restó, con su origen. Estos ejemplos muestran el formato; los números no son datos:
+- "Ventana HH:MM–HH:MM · N/10 · río creciendo despacio, viento N km/h" [diseño §8.2];
+- "El grupo sacó N <especie> acá con el río entre A y B m (última: <fecha>)" (sus capturas);
+- "Altura prevista X m, dentro del rango que cargaron (A–B m)";
+- "Fuente: Crónica Pesca, 26/3/2026 (prensa)" o "Fuente: Llompart 2011, pág. 73".
+
+Los pesqueros que solo tienen fuente externa y ninguna captura dicen "sin capturas del grupo todavía".
+
+**Pantalla:**
+- **Pronóstico:** debajo de "Anzuelos al agua" va la sección "Dónde". Muestra los 3 mejores [diseño], cada uno con nombre, puntaje, hora y "por qué" desplegable, y abajo "Ver todos".
+- Tocar un lugar abre el Mapa con "Ir a punto" (§2.3) hacia ese lugar.
+- En el Mapa, el pesquero muestra su puntaje del día y su "por qué".
+- **Offline:** todo se calcula en el teléfono con lo que ya está guardado (spots, capturas, pronóstico y alturas del INA). No pide nada nuevo a internet.
+
+**Pesqueros que se cargan con fuente** (filas en la migración 004, con `created_by = 'fuente'` y UUID fijos):
+- **Río:** las posiciones salen de OpenStreetMap. Si OSM no tiene el lugar, no se carga y lo marca el grupo en el agua con "Marcar punto".
+  - Frente al camping Las Tejas, embarcado, bogas: según Crónica Pesca (26/3/2026), "buen rinde de bogas de embarcado". La posición del camping en OSM es −34,104, −58,994.
+  - Muelle cerealero de Lima y Vuelta de San Antonio: según la misma nota. El 11/11 no los encontré en OSM, así que no se cargan hasta tener una posición con fuente.
+  - La costa de la chacra la marca el grupo con GPS.
+- **Mar (San Blas, por si vuelven):** solo los sitios con coordenadas en Llompart 2011, cap. 3:
+  - Punta Segunda (−40,54, −62,24): costa, variada, `best_tide = bajamar` ("sobre todo de corvina en marea baja", pág. 72);
+  - La Rebeca (40°34′S, 62°13′–62°12′O): costa, variada; se carga el punto medio, 40°34′S, 62°12,5′O;
+  - fin de la Playa de Arena, Mina de Hierro (40°35′S, 62°10′O): costa, variada; en notas, cazón de costa en octubre y menos en noviembre.
+  - El Puente del arroyo Jabalí no se carga: la tesis no da coordenadas, y su regla ("solo en la pleamar, con un desfase de 1–2 h") no entra en `best_tide`. Si el grupo lo marca, la regla va en las notas.
+- **Antes de cargar cualquier pesquero cerca de Atucha** se averigua con Prefectura o con la ARN si hay una zona de exclusión para navegar o pescar. Hasta confirmarlo, no se carga ningún pesquero con fuente a menos de 2 km de la central [diseño], y los que marque el grupo en esa zona muestran el aviso "zona de la central: verificar si se puede pescar".
+
+### 8.7 Fuera de alcance de la fase 2
+- Tráfico de buques de la Hidrovía y cartas fluviales oficiales.
+- Corrientes, temperatura del agua y batimetría del río como datos de puntaje, porque no hay fuente pública (§8.6).
+- Leer los informes de pesca de la prensa en forma automática.
+- Reglas por tipo de lugar sin fuente: boca de arroyo, vuelta, descarga térmica.
+
+### 8.8 Pruebas de la fase 2
+- **Automáticas:**
+  - con una serie real de Zárate guardada como fixture: detectar la oscilación diaria, calcular la tendencia y aplicar el factor presión;
+  - elegir la estación más cercana;
+  - corregir un sondeo con la altura del INA;
+  - elegir la zona por punto, incluido el caso borde a menos de 1 km del límite.
+- **Automáticas, dónde pescar:**
+  - un pesquero con `best_tide = bajamar` sin horas de bajamar en el día da 0 y "hoy no le da el agua";
+  - fuera del rango de altura resta 3, y sin pronóstico de altura no resta;
+  - con 0, 2 y 3 capturas parecidas a menos de 300 m suma 0, +1 y +2; una captura a 301 m no cuenta;
+  - el filtro por modo: un pesquero de costa no aparece en embarcado;
+  - cada término del puntaje produce su línea de "por qué" con el origen;
+  - la migración 004 pasa los `best_tide` viejos que no coinciden a `notes`.
+- **Manuales:**
+  - crear un viaje de río en Lima, preparar el viaje, ponerse en modo avión y ver altura, pronóstico, reglamento por zona y spots en rango;
+  - en modo avión, ver la sección "Dónde", abrir el "por qué" y tocar un lugar para ir al Mapa.
 
 ## 9. Registro de verificación (29/10/2026)
 
@@ -427,3 +525,23 @@ Tráfico de buques de la Hidrovía y cartas fluviales oficiales.
 | "Dorado activo a más de 18 °C" | Sin fuente | ✗ se sacó del diseño |
 | "Pez gallo = pez elefante" | Reglamento 2026 de BA, pág. 12: "Pez elefante o gallo" | ✓ desde el 30/10 (antes sin fuente) |
 | Estimación de 60–120 MB offline | Inventada | ✗ se sacó; se mide en la prueba |
+
+### 9.1 Registro de verificación del 11/11/2026 (fase 2 y "dónde pescar")
+
+| Dato | Fuente | Estado |
+|---|---|---|
+| Ubicación de Chacras del Paraná (−33,968, −59,256) y de Atucha I | [Nominatim / OpenStreetMap](https://nominatim.openstreetmap.org/) | ✓ |
+| Atucha 8208 con una lectura por hora; 8208 y 151 con distinto cero | Pedidos reales a la API del INA (a5) | ✓ |
+| Pronóstico de Zárate (calibrado 440, serie 29534) hasta el 14/11 21:00 local | Corrida real del 11/11 | ✓ unos 3,5 días |
+| Caudal de Atucha (151) sin datos del 4 al 11/11 | Pedido real a la API del INA | ✓ no se usa |
+| Open-Meteo Marine en el río: sin datos | Pedido real en −33,958, −59,216 | ✓ |
+| Corrientes SMOC: 0,08°, incluyen marea, "accuracy at coastal areas is limited", no sirven para navegar cerca de la costa | [Open-Meteo Marine API](https://open-meteo.com/en/docs/marine-weather-api) | ✓ |
+| En San Blas el modelo ve tierra en el pueblo y no ve el canal; máximo de 4,1 km/h el 8/11 | Pedidos reales a 56 celdas | ✓ |
+| Canal San Blas: flujo de hasta 2 m/s | Llompart 2011, pág. 24, cita a Cuadrado & Gómez 2010 | ✓ académica |
+| Pesqueros de San Blas con coordenadas y la regla de marea de Punta Segunda | [Llompart 2011, cap. 3, págs. 71–80](https://sedici.unlp.edu.ar/handle/10915/34280) | ✓ académica |
+| Batimetría del Paraná de las Palmas | [Boletín Fluvial](https://argentina.gob.ar/sites/default/files/2025/01/boletin_fluvial_10_25.pdf) (un solo dato por tramo), [MDE del Delta, INA 2017](https://www.ina.gob.ar/delta/pdf/INA-DELTA_Info_01_Topobatimetria.pdf) (sin descarga) | ⚠ no hay grilla pública |
+| Bogas embarcado frente a Las Tejas; muelle cerealero de Lima; Vuelta de San Antonio | [Crónica Pesca, 26/3/2026](https://www.cronica.com.ar/sociedad/cronica-pesca-el-pique-de-la-semana-noticias-y-detalles-claves-4269.html) | ⚠ prensa |
+| Camping Las Tejas en OSM (−34,104, −58,994) | Nominatim | ✓ · ⚠ muelle cerealero y Vuelta de San Antonio no encontrados |
+| Pesca en la descarga térmica de Atucha | Búsqueda sin resultados con fuente | ✗ no entra como regla |
+| Zona de exclusión frente a Atucha | Sin verificar | ⚠ se averigua antes de cargar pesqueros cerca |
+| Capturas, spots y sondeos del grupo al 11/11 | Supabase (lectura con la clave pública) | ✓ 0 capturas del viaje a San Blas; 2 spots reales |
