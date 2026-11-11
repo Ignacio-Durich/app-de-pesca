@@ -196,6 +196,8 @@ details[open] summary::after { transform: rotate(45deg); }
 .sc-night { fill: var(--night); opacity: .25; }
 .sc-win { fill: var(--good); opacity: .22; }
 .sc-tide { fill: none; stroke: var(--brand); stroke-width: 2; }
+.sc-band { fill: var(--brand); opacity: .15; stroke: none; }
+.sc-mark { stroke: currentColor; opacity: .5; stroke-width: 1; stroke-dasharray: 4 3; }
 .sc-ext { fill: var(--brand); }
 .sc-label { fill: var(--muted); font-size: 9px; }
 .sc-bar { fill: var(--brand); opacity: .6; }

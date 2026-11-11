@@ -4,22 +4,21 @@ import { cachedForecast, getForecast, ageLabel, ageOf, shouldRefresh } from '../
 import { findExtremes } from '../forecast/tides.js'
 import { scoreDay, median } from '../score/score.js'
 import { findWindows } from '../score/windows.js'
+import { trendCmPerDay } from '../score/river.js'
+import stations from '../data/stations.json'
 import { moonDay } from '../score/moon.js'
 import { NOGO_WIND_KMH, WAVE_NOGO_M, WINDOW_MIN } from '../score/config.js'
 import {
   tripDays, nowLocal, pickDay, dayLabel, countdown, slotNow, noGoRanges, tideReaches, phaseLabel, hhmm, dec, heroWindows,
+  readMode, riverLine, waterTempEstimate,
 } from '../forecast/view.js'
 import { ScoreChart } from '../components/ScoreChart.jsx'
 import { ModelTable } from '../components/ModelTable.jsx'
 import { useRows } from '../lib/useRows.js'
 import { fromInstant } from '../lib/time.js'
 
-const MODE_KEY = 'forecastMode' // por teléfono
-const readMode = () => {
-  try { return localStorage.getItem(MODE_KEY) === 'embarcado' ? 'embarcado' : 'costa' } catch { return 'costa' }
-}
 const saveMode = (m) => {
-  try { localStorage.setItem(MODE_KEY, m) } catch { /* modo privado */ }
+  try { localStorage.setItem('forecastMode', m) } catch { /* modo privado */ }
 }
 
 export function Forecast({ trip, tripId }) {
@@ -72,13 +71,16 @@ export function Forecast({ trip, tripId }) {
     )
   }
   const age = ageLabel(ageOf(res.forecast, now))
+  const river = trip.water === 'rio'
+  const station = river ? stations.find((x) => x.id === res.forecast.level?.stationId) : null
   return (
     <>
-      <DayView trip={trip} forecast={res.forecast} now={now} catches={catches} />
+      <DayView trip={trip} forecast={res.forecast} now={now} catches={catches} station={station} />
       <footer class="data-age">
         <span class={age.amber ? 'amber' : ''}>{age.text}</span>
         {res.error && !loading && <span class="muted"> · no se pudo actualizar</span>}
-        <span class="muted"> · Datos: Open-Meteo</span>
+        <span class="muted"> · Datos: Open-Meteo{station && ` · Altura: INA (${station.name})`}</span>
+        {river && res.forecast.levelError && <span class="muted"> · no se pudo actualizar la altura</span>}
         <button class="btn refresh" onClick={() => refresh(true)} disabled={loading}>
           {loading ? 'Actualizando…' : 'Actualizar ahora'}
         </button>
@@ -87,7 +89,7 @@ export function Forecast({ trip, tripId }) {
   )
 }
 
-function DayView({ trip, forecast: f, now, catches }) {
+function DayView({ trip, forecast: f, now, catches, station }) {
   const days = useMemo(() => tripDays(trip.start_date, trip.end_date), [trip.start_date, trip.end_date])
   const nowIso = nowLocal(now, f.utcOffsetSeconds)
   const today = nowIso.slice(0, 10)
@@ -96,10 +98,16 @@ function DayView({ trip, forecast: f, now, catches }) {
   const [mode, setModeState] = useState(readMode)
   const setMode = (m) => (saveMode(m), setModeState(m))
   const nightFishing = !!trip.night_fishing
+  const water = trip.water ?? 'mar'
+  const river = water === 'rio'
 
   const extremes = useMemo(() => findExtremes(f.hours), [f])
-  const slots = useMemo(() => scoreDay(f, extremes, day, mode, { nightFishing }), [f, extremes, day, mode, nightFishing])
-  const windows = useMemo(() => findWindows(slots, { nightFishing, mode }), [slots, nightFishing, mode])
+  const slots = useMemo(() => scoreDay(f, extremes, day, mode, { nightFishing, water }), [f, extremes, day, mode, nightFishing, water])
+  const cmDay = useMemo(() => (river ? trendCmPerDay(f.level?.points, day) : null), [f, day, river])
+  const windows = useMemo(
+    () => findWindows(slots, { nightFishing, mode, note: river ? riverLine(cmDay) : undefined }),
+    [slots, nightFishing, mode, river, cmDay],
+  )
   const moon = useMemo(() => moonDay(day, f.lat, f.lon, f.utcOffsetSeconds), [f, day])
   const hours = f.hours.filter((h) => h.t.startsWith(day))
   const dayExt = extremes.filter((e) => e.t.startsWith(day))
@@ -107,6 +115,12 @@ function DayView({ trip, forecast: f, now, catches }) {
   const sst = median(hours.map((h) => h.sst))
   const noGo = mode === 'embarcado' ? noGoRanges(slots) : []
   const hasTide = tideReaches(f, day)
+  // Río sin estación o sin altura (falló el INA): se trabaja solo con el clima.
+  const levelMissing = river && !!f.level && !hasTide
+  const showHero = river ? !levelMissing : hasTide
+  const waterTemp = river ? waterTempEstimate(f.hours, day) : null
+  const band = river ? (f.level?.points ?? []).filter((p) => p.lo != null && p.hi != null) : []
+  const marks = river && station ? { alert: station.alertM, low: station.lowM } : null
   // caught_at es un instante real; se pasa a hora local del viaje para marcarla en el gráfico
   const catchTimes = catches.map((c) => fromInstant(c.caught_at)).filter((c) => c.date === day).map((c) => `${c.date}T${c.time}`)
 
@@ -125,9 +139,9 @@ function DayView({ trip, forecast: f, now, catches }) {
         ))}
       </div>
 
-      {hasTide
-        ? <Hero windows={windows} slots={slots} isToday={day === today} nowIso={nowIso} />
-        : <section class="card"><p>El pronóstico de marea todavía no llega a esta fecha.</p></section>}
+      {showHero
+        ? <Hero windows={windows} slots={slots} isToday={day === today} nowIso={nowIso} line={river ? riverLine(cmDay) : null} />
+        : <section class="card"><p>{river ? 'El pronóstico de altura todavía no llega a esta fecha' : 'El pronóstico de marea todavía no llega a esta fecha.'}</p></section>}
 
       {noGo.length > 0 && (
         <div class="banner" role="alert">
@@ -138,10 +152,10 @@ function DayView({ trip, forecast: f, now, catches }) {
 
       <details class="card">
         <summary>Ver hora por hora</summary>
-        {hasTide && <ScoreChart day={day} hours={hours} extremes={dayExt} windows={windows} slots={slots} sun={sun} catches={catchTimes} />}
+        {hasTide && <ScoreChart day={day} hours={hours} extremes={river ? [] : dayExt} windows={windows} slots={slots} sun={sun} catches={catchTimes} band={band} marks={marks} />}
         {hasTide && (
           <p class="muted small">
-            Línea: altura del mar sobre el nivel medio, con la hora y altura de cada pleamar y bajamar. Barras: puntaje de
+            Línea: {river ? `altura del río en ${station?.name ?? 'la estación'} (INA), con la franja de incertidumbre del pronóstico y los niveles de alerta y de aguas bajas` : 'altura del mar sobre el nivel medio, con la hora y altura de cada pleamar y bajamar'}. Barras: puntaje de
             cada hora (verdes: {WINDOW_MIN} o más). Franja verde: ventana para tener los anzuelos al agua. Gris: noche.
           </p>
         )}
@@ -155,14 +169,16 @@ function DayView({ trip, forecast: f, now, catches }) {
             {moon.rise && ` · sale ${hhmm(moon.rise)}`}
             {moon.set && ` · se pone ${hhmm(moon.set)}`}
           </li>
-          <li>Temperatura del mar: {sst == null ? 'sin dato' : `${dec(sst)} °C`}</li>
+          {river
+            ? <li>Temperatura del agua: {waterTemp == null ? 'sin dato' : `${Math.round(waterTemp)} °C (estimada con el aire de 5 días)`}</li>
+            : <li>Temperatura del mar: {sst == null ? 'sin dato' : `${dec(sst)} °C`}</li>}
         </ul>
       </details>
     </section>
   )
 }
 
-function Hero({ windows: all, slots, isToday, nowIso }) {
+function Hero({ windows: all, slots, isToday, nowIso, line }) {
   const windows = heroWindows(all, nowIso, isToday)
   const [best, ...rest] = windows
   const nowSlot = isToday ? slotNow(slots, nowIso) : null
@@ -178,6 +194,7 @@ function Hero({ windows: all, slots, isToday, nowIso }) {
   return (
     <section class="card hero">
       <p class="hero-label">{best.weak ? 'Día flojo · mejor tramo' : 'Anzuelos al agua'}</p>
+      {line && <p class="muted">{line}</p>}
       <p class="hero-time">{hhmm(best.start)}</p>
       <p class="hero-until">
         hasta las {hhmm(best.end)}

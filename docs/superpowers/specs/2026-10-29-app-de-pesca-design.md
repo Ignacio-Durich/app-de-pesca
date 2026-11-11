@@ -545,3 +545,4 @@ Los pesqueros que solo tienen fuente externa y ninguna captura dicen "sin captur
 | Pesca en la descarga térmica de Atucha | Búsqueda sin resultados con fuente | ✗ no entra como regla |
 | Zona de exclusión frente a Atucha | Sin verificar | ⚠ se averigua antes de cargar pesqueros cerca |
 | Capturas, spots y sondeos del grupo al 11/11 | Supabase (lectura con la clave pública) | ✓ 0 capturas del viaje a San Blas; 2 spots reales |
+| Temperatura del agua del bajo Paraná en el INA (a5) | Pedidos a `/obs/puntual/series` de la estación Zárate (5907: solo altura y caudal) y de la variable 73 "Temperatura del agua" (2 series: Bell Ville y Aguapey, ninguna en el bajo Paraná), 11/11/2026 | ✗ no hay serie usable; se muestra la estimada con el aire de 5 días |

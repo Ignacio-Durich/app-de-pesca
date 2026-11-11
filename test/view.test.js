@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest'
-import { tripDays, nowLocal, pickDay, countdown, slotNow, noGoRanges, tideReaches, dayLabel, phaseLabel, heroWindows } from '../src/forecast/view.js'
+import { MODELS } from '../src/forecast/fetch.js'
+import { tripDays, nowLocal, pickDay, countdown, slotNow, noGoRanges, tideReaches, dayLabel, phaseLabel, heroWindows, riverLine, waterTempEstimate, readMode } from '../src/forecast/view.js'
 
 describe('trip days', () => {
   it('lists every day of the trip, inclusive', () => {
@@ -85,5 +86,26 @@ describe('heroWindows (F5)', () => {
   })
   it('another day: unchanged', () => {
     expect(heroWindows(ws, `${D}T22:00`, false)).toEqual(ws)
+  })
+})
+
+describe('river copy', () => {
+  it('riverLine', () => {
+    expect(riverLine(8)).toBe('Río creciendo, +8 cm/día')
+    expect(riverLine(-20)).toBe('Río bajando, -20 cm/día')
+    expect(riverLine(2.4)).toBe('Río estable, +2 cm/día')
+    expect(riverLine(null)).toBe('Río: sin tendencia')
+  })
+  const hrs = (n, temp) => Array.from({ length: n }, (_, i) => ({
+    t: new Date(Date.UTC(2026, 10, 6, i)).toISOString().slice(0, 16), temp: Object.fromEntries(Object.keys(MODELS).map((k, j) => [k, j ? null : temp])),
+  }))
+  it('waterTempEstimate averages the 5 days before the day', () => {
+    expect(waterTempEstimate(hrs(120, 20), '2026-11-11')).toBe(20)
+  })
+  it('waterTempEstimate is null with under 24 h of data', () => {
+    expect(waterTempEstimate(hrs(23, 20), '2026-11-11')).toBeNull()
+  })
+  it('readMode defaults to costa', () => {
+    expect(readMode()).toBe('costa')
   })
 })

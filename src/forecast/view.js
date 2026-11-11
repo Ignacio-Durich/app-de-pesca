@@ -1,6 +1,9 @@
 // Textos y cálculos chicos de la pantalla Pronóstico. Horas siempre en hora local del lugar.
 import { parseLocal, formatLocal } from '../lib/time.js'
 import { SLOT_MIN } from '../score/config.js'
+import { MODELS } from './fetch.js'
+import { median } from '../score/score.js'
+import { trendLabel } from '../score/river.js'
 
 export const hhmm = (iso) => iso.slice(11, 16)
 export const dec = (v, d = 1) => v.toFixed(d).replace('.', ',')
@@ -52,3 +55,25 @@ export const tideReaches = (forecast, day) => !!forecast.lastTideT && forecast.l
 
 export const phaseLabel = (p) =>
   p ? `${p.rising ? 'creciente' : 'bajante'}, ${p.next.type === 'high' ? 'pleamar' : 'bajamar'} ${hhmm(p.next.t)}` : null
+
+// Modo Costa/Embarcado, guardado por teléfono.
+const MODE_KEY = 'forecastMode'
+export const readMode = () => {
+  try { return localStorage.getItem(MODE_KEY) === 'embarcado' ? 'embarcado' : 'costa' } catch { return 'costa' }
+}
+
+// Río: "Río creciendo, +8 cm/día" (spec §8.3).
+export function riverLine(cmDay) {
+  const label = trendLabel(cmDay)
+  if (!label) return 'Río: sin tendencia'
+  const n = Math.round(cmDay)
+  return `Río ${label}, ${n < 0 ? '-' : '+'}${Math.abs(n)} cm/día`
+}
+
+// Temperatura del agua estimada: aire (mediana de modelos) promedio de las 120 h previas a las 00:00 del día.
+export function waterTempEstimate(hours, dateIso) {
+  const end = dateIso + 'T00:00', start = formatLocal(parseLocal(end) - 120 * 60)
+  const v = hours.filter((h) => h.t >= start && h.t < end)
+    .map((h) => median(Object.keys(MODELS).map((k) => h.temp?.[k]))).filter((x) => x != null)
+  return v.length < 24 ? null : v.reduce((a, b) => a + b, 0) / v.length
+}
