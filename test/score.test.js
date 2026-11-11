@@ -4,7 +4,7 @@ import weather from './fixtures/weather-sanblas.json'
 import { normalize, MODELS } from '../src/forecast/fetch.js'
 import { findExtremes } from '../src/forecast/tides.js'
 import { parseLocal } from '../src/lib/time.js'
-import { WEIGHTS } from '../src/score/config.js'
+import { WEIGHTS, WEIGHTS_RIO } from '../src/score/config.js'
 import { median, tideFactor, windFactor, moonFactor, scoreDay, baseScore } from '../src/score/score.js'
 
 const DAY = '2026-11-07'
@@ -208,5 +208,41 @@ describe('scoreDay (fixtures 7/11)', () => {
   it('dirDeg is the circular mean of the models', () => {
     // 12:00: ecmwf 360, gfs 47 → ~23.5°, no 203.5°
     expect(slot(slots, '12:00').dirDeg).toBeCloseTo(23.5, 0)
+  })
+})
+
+describe('scoreDay: el mar no cambia con la fase de río', () => {
+  it('score y factors del 7/11 idénticos al snapshot previo', () => {
+    const out = run(fresh()).map(({ t, score, factors }) => ({ t, score, factors }))
+    expect(out).toMatchSnapshot()
+    expect(out.every((s) => !('pressure' in s.factors))).toBe(true)
+  })
+})
+
+describe('scoreDay en río', () => {
+  const rio = (extra = {}) => {
+    const f = fresh()
+    f.level = { source: 'ina', stationId: 1, forecastDate: DAY, points: [] }
+    Object.assign(f, extra)
+    return scoreDay(f, findExtremes(f.hours), DAY, 'costa', { nightFishing: true, water: 'rio' })
+  }
+  it('agrega factors.pressure y puntúa con WEIGHTS_RIO', () => {
+    const s = slot(rio(), '12:00')
+    expect(s.factors.pressure).not.toBe(undefined)
+    expect(s.factors.pressure).not.toBe(null)
+    let num = 0, den = 0
+    for (const k of Object.keys(WEIGHTS_RIO)) if (s.factors[k] != null) (num += WEIGHTS_RIO[k] * s.factors[k]), (den += WEIGHTS_RIO[k])
+    expect(s.score).toBe(Math.min(10, Math.round(10 * num / den) + 0))
+  })
+  it('una bajante rápida del río baja el factor de marea', () => {
+    const f = fresh()
+    const pts = (h0, h1) => [
+      { t: '2026-11-04T12:00', h: h0 }, { t: DAY + 'T12:00', h: h1 },
+    ]
+    const go = (points) => {
+      const g = { ...f, level: { points } }
+      return slot(scoreDay(g, findExtremes(g.hours), DAY, 'costa', { nightFishing: true, water: 'rio' }), '12:00').factors.tide
+    }
+    expect(go(pts(2.0, 1.4))).toBeCloseTo(go(pts(1, 1)) * 0.6, 10)
   })
 })

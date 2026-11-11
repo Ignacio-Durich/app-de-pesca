@@ -42,7 +42,7 @@ function runs(slots, ok) {
   return out
 }
 
-export function findWindows(slots, { nightFishing, mode = 'costa' }) {
+export function findWindows(slots, { nightFishing, mode = 'costa', note }) {
   // noGo: "No conviene salir" (spec §2.2) nunca se recomienda como ventana
   const eligible = (s) => s.score != null && !s.noGo && (nightFishing || !s.night)
   let found = runs(slots, (s) => eligible(s) && s.score >= WINDOW_MIN)
@@ -59,7 +59,7 @@ export function findWindows(slots, { nightFishing, mode = 'costa' }) {
       start: run[0].t,
       end: formatLocal(parseLocal(run.at(-1).t) + SLOT_MIN),
       score: Math.max(...run.map((s) => s.score)),
-      reason: reason(run, mode),
+      reason: reason(run, mode) + (note ? ', ' + note : ''),
       weak,
     }))
     .sort((a, b) => b.score - a.score || (a.start < b.start ? -1 : 1))

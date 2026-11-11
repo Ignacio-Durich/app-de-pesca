@@ -45,3 +45,17 @@ export const NIGHT_CAP = 2
 export const WINDOW_MIN = 7
 export const MAX_WINDOWS = 3
 export const STATION_MAX_KM = 60 // [diseño] spec §8.1
+
+// [diseño] spec §8.2: pesos del puntaje de río (la presión pesa; no hay marea astronómica).
+export const WEIGHTS_RIO = { tide: 0.5, wind: 0.3, pressure: 0.1, moon: 0.05, weather: 0.05 }
+
+// [diseño] spec §8.2: tendencia del nivel del río, en cm/día sobre los últimos trendDays días.
+export const RIVER = {
+  trendDays: 3,
+  fastFallCmDay: 15, fastFall: 0.6, // bajante rápida: multiplica el factor de nivel
+  strongRiseCmDay: 30, strongRise: 0.7, // crecida fuerte
+  stableCmDay: 5, // dentro de ±5 cm/día se dice "estable"
+}
+
+// [diseño] spec §8.2: presión. La spec no fija "sube rápido": +2 hPa en 6 h, simétrico a la caída.
+export const PRESSURE = { hours: 6, deltaHpa: 2, drop: 1.0, stable: 0.6, rise: 0.3 }

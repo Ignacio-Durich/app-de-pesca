@@ -125,3 +125,11 @@ describe('findWindows', () => {
     expect(w.map((x) => x.score)).toEqual([...w.map((x) => x.score)].sort((a, b) => b - a))
   })
 })
+
+describe('findWindows con note', () => {
+  it('termina el motivo con la nota', () => {
+    const w = findWindows(mk([8, 8, 8, 8, 8, 8, 8, 8]), { nightFishing: false, note: 'río creciendo, +8 cm/día' })
+    expect(w[0].reason.endsWith(', río creciendo, +8 cm/día')).toBe(true)
+    expect(findWindows(mk([8, 8, 8, 8, 8, 8, 8, 8]), { nightFishing: false })[0].reason).not.toContain('río')
+  })
+})

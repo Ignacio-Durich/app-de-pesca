@@ -2,8 +2,9 @@ import { parseLocal, formatLocal } from '../lib/time.js'
 import { tidePhaseAt } from '../forecast/tides.js'
 import { MODELS } from '../forecast/fetch.js'
 import { moonDay } from './moon.js'
+import { trendCmPerDay, trendFactor, pressureFactor } from './river.js'
 import {
-  WEIGHTS, TIDE, WIND, MOON, LIGHT, SLOT_MIN,
+  WEIGHTS, WEIGHTS_RIO, TIDE, WIND, MOON, LIGHT, SLOT_MIN,
   SCORE_MAX, WAVE_NOGO_M, NOGO_WIND_KMH, UNCERTAIN_KMH, NIGHT_CAP,
 } from './config.js'
 
@@ -64,16 +65,19 @@ const FLOAT_EPS = 1e-9
 
 // Puntaje 0–SCORE_MAX de los factores no nulos (los pesos se renormalizan, R10).
 // Sin marea ni viento no hay puntaje: la luna sola (día sin datos horarios) no es un pronóstico.
-export function baseScore(factors) {
+export function baseScore(factors, weights = WEIGHTS) {
   if (factors.tide == null && factors.wind == null) return null
   let num = 0, den = 0
-  for (const [k, w] of Object.entries(WEIGHTS)) if (factors[k] != null) (num += w * factors[k]), (den += w)
+  for (const [k, w] of Object.entries(weights)) if (factors[k] != null) (num += w * factors[k]), (den += w)
   return den ? Math.round((SCORE_MAX * num) / den + FLOAT_EPS) : null
 }
 
 // Slots cada SLOT_MIN del día local. Viento: por modelo se calcula max(medio, 0.7·ráfaga) y se toma
 // la mediana; ese valor ya incluye la ráfaga, así que se pasa a windFactor con gust = null.
-export function scoreDay(forecast, extremes, dateIso, mode, { nightFishing }) {
+export function scoreDay(forecast, extremes, dateIso, mode, { nightFishing, water = 'mar' }) {
+  const rio = water === 'rio'
+  // tendencia del río: una vez por día (sin nivel → factor 1)
+  const tFactor = rio ? trendFactor(trendCmPerDay(forecast.level?.points, dateIso)) : 1
   const byT = new Map(forecast.hours.map((h) => [h.t, h]))
   const hourAt = (m) => byT.get(formatLocal(m))
   // valor en la hora exacta, o combinación de las dos horas vecinas (null si falta alguna)
@@ -107,11 +111,15 @@ export function scoreDay(forecast, extremes, dateIso, mode, { nightFishing }) {
       moon: moonFactor(m, moon),
       weather: rain == null ? null : 1 - rain / 100,
     }
+    if (rio) {
+      if (factors.tide != null) factors.tide *= tFactor
+      factors.pressure = pressureFactor(forecast.hours, m)
+    }
 
     const night = sunrise != null && sunset != null && (m < sunrise || m >= sunset)
     const edge = sunrise != null && sunset != null &&
       ((m >= sunrise && m < sunrise + LIGHT.edgeMin) || (m >= sunset - LIGHT.edgeMin && m < sunset))
-    let score = baseScore(factors)
+    let score = baseScore(factors, rio ? WEIGHTS_RIO : WEIGHTS)
     if (score != null) {
       if (edge) score = Math.min(SCORE_MAX, score + LIGHT.edgeBonus)
       if (night && !nightFishing) score = Math.min(NIGHT_CAP, score)
