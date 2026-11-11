@@ -29,6 +29,12 @@ describe('createTrip', () => {
     expect((await pending()).some((o) => o.table === 'trips' && o.tripId === id)).toBe(true)
     expect(recentTrips()).toEqual([{ id, name: 'San Blas' }])
   })
+
+  it('viaje de río: guarda water rio y night_fishing', async () => {
+    const id = await createTrip({ ...fields, name: 'Lima', water: 'rio', nightFishing: true })
+    const [row] = await listRows('trips', id)
+    expect(row).toMatchObject({ water: 'rio', night_fishing: true })
+  })
 })
 
 describe('loadTrip', () => {

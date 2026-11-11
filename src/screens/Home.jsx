@@ -1,5 +1,6 @@
 import { useState } from 'preact/hooks'
 import { Link, navigate } from '../nav.jsx'
+import { nearestStation } from '../river/ina.js'
 import { createTrip, recentTrips, tripIdFrom } from '../trips/trips.js'
 
 const num = (s) => (s.trim() === '' ? NaN : Number(s))
@@ -7,7 +8,7 @@ const num = (s) => (s.trim() === '' ? NaN : Number(s))
 const parseNames = (text, have) => text.split(',').map((s) => s.trim()).filter((n, i, a) => n && !have.includes(n) && a.indexOf(n) === i)
 
 export function Home() {
-  const [f, setF] = useState({ name: '', placeName: '', lat: '', lon: '', startDate: '', endDate: '', nightFishing: false })
+  const [f, setF] = useState({ name: '', placeName: '', lat: '', lon: '', startDate: '', endDate: '', water: 'mar', nightFishing: false })
   const [members, setMembers] = useState([])
   const [draft, setDraft] = useState('')
   const [error, setError] = useState('')
@@ -15,6 +16,10 @@ export function Home() {
   const [link, setLink] = useState('')
   const [linkError, setLinkError] = useState('')
   const set = (k) => (e) => setF({ ...f, [k]: e.target.type === 'checkbox' ? e.target.checked : e.target.value })
+
+  // Río: pesca nocturna se tilda sola (se puede destildar).
+  const setWater = (e) => setF({ ...f, water: e.target.value, nightFishing: e.target.value === 'rio' ? true : f.nightFishing })
+  const noStation = f.water === 'rio' && Number.isFinite(num(f.lat)) && Number.isFinite(num(f.lon)) && !nearestStation(num(f.lat), num(f.lon))
 
   const addMembers = () => {
     const names = parseNames(draft, members)
@@ -43,7 +48,7 @@ export function Home() {
     try {
       const id = await createTrip({
         name: f.name.trim(), placeName: f.placeName.trim() || f.name.trim(), lat, lon,
-        startDate: f.startDate, endDate: f.endDate, members: all, water: 'mar', nightFishing: f.nightFishing,
+        startDate: f.startDate, endDate: f.endDate, members: all, water: f.water, nightFishing: f.nightFishing,
       })
       navigate(`/t/${id}`)
     } catch {
@@ -82,6 +87,12 @@ export function Home() {
       </form>
       <form class="card stack" onSubmit={submit}>
         <h2>Crear viaje</h2>
+        <label>Agua
+          <select value={f.water} onChange={setWater}>
+            <option value="mar">Mar</option>
+            <option value="rio">Río</option>
+          </select>
+        </label>
         <label>Nombre<input value={f.name} onInput={set('name')} placeholder="San Blas" /></label>
         <label>Lugar<input value={f.placeName} onInput={set('placeName')} placeholder="Nombre del lugar" /></label>
         <div class="row">
@@ -111,6 +122,7 @@ export function Home() {
             ))}
           </div>
         )}
+        {noStation && <p class="muted" role="status">No hay una estación del INA con pronóstico a menos de 60 km: el puntaje va a ir sin altura del río</p>}
         <label class="check"><input type="checkbox" checked={f.nightFishing} onChange={set('nightFishing')} /> Pesca nocturna</label>
         {error && <p class="error" role="alert">{error}</p>}
         <button class="btn primary big" disabled={busy}>Crear viaje</button>
