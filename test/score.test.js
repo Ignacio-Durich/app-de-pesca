@@ -230,9 +230,11 @@ describe('scoreDay en río', () => {
     const s = slot(rio(), '12:00')
     expect(s.factors.pressure).not.toBe(undefined)
     expect(s.factors.pressure).not.toBe(null)
-    let num = 0, den = 0
-    for (const k of Object.keys(WEIGHTS_RIO)) if (s.factors[k] != null) (num += WEIGHTS_RIO[k] * s.factors[k]), (den += WEIGHTS_RIO[k])
-    expect(s.score).toBe(Math.min(10, Math.round(10 * num / den) + 0))
+    expect(s.score).toBe(Math.min(10, baseScore(s.factors, WEIGHTS_RIO)))
+    expect(baseScore(s.factors, WEIGHTS_RIO)).not.toBe(baseScore(s.factors, WEIGHTS))
+  })
+  it('los slots :30 también tienen presión (se interpola entre horas)', () => {
+    expect(slot(rio(), '12:30').factors.pressure).not.toBe(null)
   })
   it('una bajante rápida del río baja el factor de marea', () => {
     const f = fresh()

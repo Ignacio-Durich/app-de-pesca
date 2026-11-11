@@ -26,9 +26,16 @@ export function trendLabel(cmDay) {
 
 // Mediana de los modelos ahora vs. PRESSURE.hours h antes.
 export function pressureFactor(hours, tMin) {
-  const p = (m) => {
+  const hourP = (m) => {
     const h = hours.find((x) => x.t === formatLocal(m))
     return median(Object.keys(MODELS).map((k) => h?.pressure?.[k]))
+  }
+  // fuera de la hora en punto: media de las dos horas vecinas (null si falta alguna), como at() en scoreDay
+  const p = (m) => {
+    const off = ((m % 60) + 60) % 60
+    if (!off) return hourP(m)
+    const a = hourP(m - off), b = hourP(m - off + 60)
+    return a == null || b == null ? null : (a + b) / 2
   }
   const now = p(tMin), before = p(tMin - PRESSURE.hours * 60)
   if (now == null || before == null) return null
