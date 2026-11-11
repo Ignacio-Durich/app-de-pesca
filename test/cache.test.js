@@ -25,6 +25,9 @@ describe('cacheKey', () => {
   it('uses the trip coordinates with 2 decimals', () => {
     expect(cacheKey(trip)).toBe('forecast:-40.55,-62.23')
   })
+  it('en río lleva rio y no choca con el de mar', () => {
+    expect(cacheKey({ ...trip, water: 'rio' })).toBe('forecast:rio:-40.55,-62.23')
+  })
 })
 
 describe('getForecast', () => {

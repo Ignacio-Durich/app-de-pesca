@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, afterEach } from 'vitest'
 import marine from './fixtures/marine-sanblas.json'
 import weather from './fixtures/weather-sanblas.json'
-import { buildUrls, normalize, fetchForecast, MODELS, FORECAST_TIMEOUT_MS } from '../src/forecast/fetch.js'
+import { buildUrls, normalize, fetchForecast, withLevels, MODELS, FORECAST_TIMEOUT_MS } from '../src/forecast/fetch.js'
 
 const FETCHED = '2026-10-29T12:00:00.000Z'
 const f = normalize(marine, weather, FETCHED)
@@ -124,5 +124,41 @@ describe('fetchForecast', () => {
     const r = expect(p).rejects.toThrow()
     await vi.advanceTimersByTimeAsync(FORECAST_TIMEOUT_MS)
     await r
+  })
+})
+
+describe('río', () => {
+  const station = { id: 'zarate', obsSeries: 29437, estacionId: 1, pronoCal: 1 }
+  it('buildUrls: sin marine y con 5 días atrás', () => {
+    const u = buildUrls(-34.1, -59, { water: 'rio' })
+    expect(u.marine).toBeNull()
+    expect(u.weather).toContain('past_days=5')
+  })
+  it('withLevels pone h en sea, deja null el resto y lastTideT es la última con altura', () => {
+    const base = normalize({ hourly: { time: [] } }, weather, FETCHED)
+    const [t0, t1, t2] = base.hours.map((h) => h.t)
+    const lv = { source: 'ina:29437', stationId: 'zarate', forecastDate: 'x', points: [{ t: t0, h: 1.1 }, { t: t1, h: 1.2 }, { t: 'otra', h: 9 }] }
+    const r = withLevels(base, lv)
+    expect(r.hours[0].sea).toBe(1.1)
+    expect(r.hours[2].sea).toBeNull()
+    expect(r.lastTideT).toBe(t1)
+    expect(r.level).toEqual(lv)
+    expect(t2).toBeDefined()
+  })
+  it('keeps weather when INA fails', async () => {
+    const fake = async (url) => {
+      if (url.includes('open-meteo')) return new Response(JSON.stringify(weather), { status: 200 })
+      throw new Error('INA caído')
+    }
+    const r = await fetchForecast(-34.1, -59, fake, { water: 'rio', station })
+    expect(r.hours.length).toBeGreaterThan(0)
+    expect(r.level).toBeUndefined()
+    expect(r.levelError).toBe('INA caído')
+  })
+  it('sin estación: solo clima, sin level ni levelError', async () => {
+    const fake = async () => new Response(JSON.stringify(weather), { status: 200 })
+    const r = await fetchForecast(-34.1, -59, fake, { water: 'rio', station: null })
+    expect(r.level).toBeUndefined()
+    expect(r.levelError).toBeUndefined()
   })
 })

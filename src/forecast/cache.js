@@ -1,10 +1,11 @@
 import { fetchForecast } from './fetch.js'
+import { nearestStation } from '../river/ina.js'
 import { localGet, localSet } from '../lib/local.js'
 
 export const REFRESH_HOURS = 1 // [diseño] spec §3.4: con señal se refresca si tiene más de 1 h
 export const STALE_HOURS = 24 // [diseño] spec §3.4: más de 24 h se pone en ámbar
 
-export const cacheKey = (trip) => `forecast:${trip.lat.toFixed(2)},${trip.lon.toFixed(2)}`
+export const cacheKey = (trip) => `forecast:${trip.water === 'rio' ? 'rio:' : ''}${trip.lat.toFixed(2)},${trip.lon.toFixed(2)}`
 
 export const ageOf = (f, now) => (f ? Math.max(0, (now - Date.parse(f.fetchedAt)) / 3.6e6) : null)
 
@@ -24,7 +25,10 @@ export async function getForecast(trip, { now = Date.now(), fetchImpl = fetch, f
   const local = await cachedForecast(trip, now)
   if (!force && local.forecast && local.ageHours < REFRESH_HOURS) return local
   try {
-    const forecast = await fetchForecast(trip.lat, trip.lon, fetchImpl)
+    const forecast = await fetchForecast(
+      trip.lat, trip.lon, fetchImpl,
+      trip.water === 'rio' ? { water: 'rio', station: nearestStation(trip.lat, trip.lon) } : undefined,
+    )
     await localSet(cacheKey(trip), forecast)
     return { forecast, ageHours: 0, refreshed: true }
   } catch (e) {

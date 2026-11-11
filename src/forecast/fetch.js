@@ -1,6 +1,7 @@
 // Descarga y normaliza Open-Meteo: marea/oleaje (marine) + viento/clima de 3 modelos.
 // Las horas vienen en hora local del lugar como texto sin offset; no se parsean acá.
 import { timeoutSignal } from '../lib/timeout.js'
+import { fetchLevels } from '../river/ina.js'
 
 export const MODELS = { ecmwf: 'ecmwf_ifs025', gfs: 'gfs_seamless', icon: 'icon_seamless' }
 
@@ -8,16 +9,19 @@ export const MODELS = { ecmwf: 'ecmwf_ifs025', gfs: 'gfs_seamless', icon: 'icon_
 export const FORECAST_TIMEOUT_MS = 20_000
 
 const TZ = 'America/Argentina/Buenos_Aires'
-const COMMON = `past_days=1&forecast_days=16&timezone=${TZ}`
+const common = (past) => `past_days=${past}&forecast_days=16&timezone=${TZ}`
 
-export const buildUrls = (lat, lon) => ({
+// En río no hay marea: sin marine, y 5 días atrás de clima para la temperatura estimada (spec §8.3).
+export const buildUrls = (lat, lon, { water = 'mar' } = {}) => ({
   marine:
-    `https://marine-api.open-meteo.com/v1/marine?latitude=${lat}&longitude=${lon}` +
-    `&hourly=sea_level_height_msl,wave_height,sea_surface_temperature&cell_selection=sea&${COMMON}`,
+    water === 'rio'
+      ? null
+      : `https://marine-api.open-meteo.com/v1/marine?latitude=${lat}&longitude=${lon}` +
+        `&hourly=sea_level_height_msl,wave_height,sea_surface_temperature&cell_selection=sea&${common(1)}`,
   weather:
     `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}` +
     `&hourly=wind_speed_10m,wind_gusts_10m,wind_direction_10m,precipitation_probability,temperature_2m,surface_pressure` +
-    `&daily=sunrise,sunset&models=${Object.values(MODELS).join(',')}&${COMMON}`,
+    `&daily=sunrise,sunset&models=${Object.values(MODELS).join(',')}&${common(water === 'rio' ? 5 : 1)}`,
 })
 
 // campo del forecast -> variable de Open-Meteo
@@ -87,8 +91,26 @@ const getJson = async (fetchImpl, url) => {
   return res.json()
 }
 
-export async function fetchForecast(lat, lon, fetchImpl = fetch) {
-  const u = buildUrls(lat, lon)
-  const [marine, weather] = await Promise.all([getJson(fetchImpl, u.marine), getJson(fetchImpl, u.weather)])
-  return normalize(marine, weather, new Date().toISOString())
+// La altura del río ocupa el lugar del nivel del mar (`sea`), así curva, extremos y puntaje siguen igual.
+export function withLevels(forecast, levels) {
+  const h = new Map(levels.points.map((p) => [p.t, p.h]))
+  const hours = forecast.hours.map((x) => ({ ...x, sea: h.get(x.t) ?? null }))
+  const { source, stationId, forecastDate, points } = levels
+  return { ...forecast, hours, level: { source, stationId, forecastDate, points }, lastTideT: hours.findLast((x) => x.sea != null)?.t ?? null }
+}
+
+export async function fetchForecast(lat, lon, fetchImpl = fetch, { water = 'mar', station = null } = {}) {
+  const u = buildUrls(lat, lon, { water })
+  if (water !== 'rio') {
+    const [marine, weather] = await Promise.all([getJson(fetchImpl, u.marine), getJson(fetchImpl, u.weather)])
+    return normalize(marine, weather, new Date().toISOString())
+  }
+  // Río: si el INA falla (o no hay estación cerca) queda el clima solo.
+  const [weather, lv] = await Promise.all([
+    getJson(fetchImpl, u.weather),
+    station ? fetchLevels(station, { fetchImpl }).then((v) => ({ v }), (e) => ({ e })) : {},
+  ])
+  const base = normalize({ hourly: { time: [] } }, weather, new Date().toISOString())
+  if (lv.v) return withLevels(base, lv.v)
+  return lv.e ? { ...base, levelError: lv.e.message || String(lv.e) } : base
 }
