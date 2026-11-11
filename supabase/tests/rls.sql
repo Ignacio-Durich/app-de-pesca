@@ -18,6 +18,13 @@ insert into itinerary_items (trip_id, title) values
 insert into catches (trip_id, species) values
   ('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', 'a'),
   ('bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb', 'b');
+-- Para catches_near (migración 004): A con posición (a ~0 km del punto de prueba) y otra sin lat;
+-- B con posición lejos (~100 km).
+insert into catches (trip_id, species, caught_at, lat, lon, tide_phase, tide_height_m, level_source) values
+  ('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', 'near-a', '2026-01-01T10:00:00Z', -34.1, -58.9, 'creciente', 1.2, 'marea');
+insert into catches (trip_id, species, caught_at, lat, lon) values
+  ('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', 'sin-lat', '2026-01-02T10:00:00Z', null, -58.9),
+  ('bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb', 'far-b', '2026-01-03T10:00:00Z', -35.0, -58.9);
 insert into spots (name) values ('spot compartido');
 
 -- ── Viaje A ─────────────────────────────────────────────────────────────────
@@ -36,8 +43,8 @@ begin
   assert (select count(*) from checklist_items) = 2, 'A ve sus 2 checklist_items';
   assert (select count(*) from checklist_items where trip_id = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb') = 0, 'A no ve checklist de B';
   assert (select count(*) from itinerary_items) = 1, 'A ve su itinerario';
-  assert (select count(*) from catches) = 1, 'A ve sus capturas';
-  assert (select count(*) from spots) = 1, 'spots es de lectura abierta';
+  assert (select count(*) from catches) = 3, 'A ve sus 3 capturas';
+  assert (select count(*) from spots where name = 'spot compartido') = 1, 'spots es de lectura abierta';
 
   -- insert propio OK
   insert into checklist_items (trip_id, text) values ('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', 'a3');
@@ -89,12 +96,44 @@ begin
   raise notice 'OK viaje A: ve lo suyo y 0 de B; insert/update/delete cruzados rechazados';
 end $$;
 
+-- ── Migración 004: constraints y catches_near (header de A) ────────────────
+do $$
+declare r record;
+begin
+  begin
+    insert into spots (name, best_tide) values ('x', 'rarísimo');
+    assert false, 'best_tide fuera del enum debía fallar';
+  exception when check_violation then
+    null;
+  end;
+  begin
+    insert into spots (name, access) values ('x', 'kayak');
+    assert false, 'access = kayak debía fallar';
+  exception when check_violation then
+    null;
+  end;
+
+  -- 1 fila: la captura con posición cercana; la sin lat y la lejana de B no entran.
+  -- La función devuelve solo species, caught_at, lat, lon, tide_phase, tide_height_m, level_source:
+  -- no tiene columna member (lo garantiza el tipo de retorno).
+  select * into r from public.catches_near(-34.1, -58.9, 1);
+  assert (select count(*) from public.catches_near(-34.1, -58.9, 1)) = 1, 'catches_near devuelve 1 fila';
+  assert r.species = 'near-a' and r.tide_phase = 'creciente' and r.level_source = 'marea', 'catches_near devuelve los campos';
+  assert (select count(*) from public.catches_near(-34.1, -58.9, 200)) = 2, 'con radio grande entra la de B (cruza viajes)';
+
+  -- los pesqueros con fuente vienen sembrados por la migración
+  assert (select count(*) from spots where created_by = 'fuente') = 4, '4 pesqueros con fuente';
+  raise notice 'OK migración 004';
+end $$;
+
 -- ── Viaje B: simétrico (ve 1 checklist, no los de A) ────────────────────────
 set local request.headers = '{"x-trip-id":"bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb"}';
 do $$
 begin
   assert (select count(*) from checklist_items) = 1, 'B ve su único checklist_item';
   assert (select count(*) from checklist_items where trip_id = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa') = 0, 'B no ve checklist de A';
+  -- catches_near cruza viajes: B ve la captura cercana de A (sin nombres)
+  assert (select count(*) from public.catches_near(-34.1, -58.9, 1)) = 1, 'B ve la captura de A vía catches_near';
   raise notice 'OK viaje B';
 end $$;
 
