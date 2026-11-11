@@ -156,7 +156,7 @@ export function MapScreen({ trip, me, tripId }) {
       const lines = [
         `Sondeo ${i + 1} · ${dayLabel(date)} ${time}${s.created_by ? ` · ${s.created_by}` : ''}`,
         `Medido: ${m(s.depth_measured_m)}`,
-        s.tide_height_m == null ? 'Marea: sin dato' : `Marea: ${m(s.tide_height_m)}`,
+        `${s.level_source?.startsWith('ina:') ? 'Río' : 'Marea'}: ${s.tide_height_m == null ? 'sin dato' : m(s.tide_height_m)}`,
         s.depth_datum_m == null ? 'Sin marea: no se puede comparar con otros días' : `Referido al mismo nivel: ${m(s.depth_datum_m)}`,
       ]
       L.marker([s.lat, s.lon], { icon: L.divIcon({ className: 'sounding-pin', html: String(i + 1), iconSize: [26, 26] }) })
@@ -205,11 +205,11 @@ export function MapScreen({ trip, me, tripId }) {
   const addSounding = async (measured) => {
     const t = nowTrip()
     const f = (await cachedForecast(trip)).forecast ?? { hours: [] }
-    const tide = conditionsAt(f, findExtremes(f.hours), `${t.date}T${t.time}`).tide_height_m
+    const { tide_height_m: tide, level_source } = conditionsAt(f, findExtremes(f.hours), `${t.date}T${t.time}`)
     const datum = soundingDatum(measured, tide)
     await saveRow('soundings', scope, {
       id: crypto.randomUUID(), lat: at.latitude, lon: at.longitude, depth_measured_m: measured,
-      tide_height_m: tide, depth_datum_m: datum, measured_at: toInstant(t.date, t.time), created_by: me ?? null,
+      tide_height_m: tide, level_source, depth_datum_m: datum, measured_at: toInstant(t.date, t.time), created_by: me ?? null,
     })
     await reloadSoundings()
     close()

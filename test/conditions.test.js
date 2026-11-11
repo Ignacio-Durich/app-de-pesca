@@ -5,7 +5,7 @@ import { normalize, MODELS } from '../src/forecast/fetch.js'
 import { findExtremes } from '../src/forecast/tides.js'
 import { parseLocal, formatLocal } from '../src/lib/time.js'
 import { median, circularMean } from '../src/score/score.js'
-import { conditionsAt } from '../src/catches/conditions.js'
+import { conditionsAt, phaseNameAt } from '../src/catches/conditions.js'
 
 const f = normalize(marine, weather, '2026-10-29T12:00:00Z')
 const ext = findExtremes(f.hours)
@@ -44,7 +44,7 @@ describe('conditionsAt', () => {
 
   it('returns nulls (no throw) outside the forecast', () => {
     expect(conditionsAt(f, ext, '2030-01-01T10:00')).toEqual({
-      tide_phase: null, tide_height_m: null, wind_kmh: null, wind_dir_deg: null,
+      tide_phase: null, tide_height_m: null, wind_kmh: null, wind_dir_deg: null, level_source: null,
     })
   })
 
@@ -55,5 +55,23 @@ describe('conditionsAt', () => {
     expect(c.tide_height_m).toBeNull()
     expect(c.tide_phase).toBe('creciente')
     expect(c.wind_kmh).not.toBeNull()
+  })
+
+  it('level_source is "marea" for the sea forecast', () => {
+    expect(conditionsAt(f, ext, '2026-11-07T10:00').level_source).toBe('marea')
+  })
+
+  it('level_source is the river station when the forecast has one; null without a height', () => {
+    const hours = ['2026-11-07T10:00', '2026-11-07T11:00'].map((t, i) => ({ t, sea: 2 + i, wind: {}, dir: {} }))
+    const r = { hours, level: { source: 'ina:29437' } }
+    const c = conditionsAt(r, [], '2026-11-07T10:30')
+    expect(c.level_source).toBe('ina:29437')
+    expect(c.tide_height_m).toBeCloseTo(2.5, 6)
+    expect(conditionsAt(r, [], '2030-01-01T10:00').level_source).toBeNull()
+  })
+
+  it('phaseNameAt matches conditionsAt.tide_phase', () => {
+    for (const t of ['2026-11-07T04:00', '2026-11-07T10:00', '2026-11-07T14:00', '2026-11-07T20:00'])
+      expect(phaseNameAt(parseLocal(t), ext)).toBe(conditionsAt(f, ext, t).tide_phase)
   })
 })

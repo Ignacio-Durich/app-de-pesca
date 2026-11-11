@@ -8,6 +8,13 @@ export const SLACK_MIN = 30 // [diseño] a ±30 min de un extremo cuenta como pl
 
 const NAME = { high: 'pleamar', low: 'bajamar' }
 
+// Fase de la marea a tMin (minutos locales, como parseLocal): pleamar/bajamar a ±SLACK_MIN de un extremo.
+export function phaseNameAt(tMin, extremes) {
+  const near = extremes.find((e) => Math.abs(parseLocal(e.t) - tMin) <= SLACK_MIN)
+  const phase = tidePhaseAt(tMin, extremes)
+  return near ? NAME[near.type] : phase ? (phase.rising ? 'creciente' : 'bajante') : null
+}
+
 // tLocal: hora local del lugar ('YYYY-MM-DDTHH:MM'). Lo que el pronóstico no cubre queda en null.
 export function conditionsAt(forecast, extremes, tLocal) {
   const m = parseLocal(tLocal)
@@ -23,9 +30,8 @@ export function conditionsAt(forecast, extremes, tLocal) {
   const wind_kmh = h ? median(models.map((k) => h.wind[k])) : null
   const wind_dir_deg = h ? circularMean(models.map((k) => h.dir[k])) : null
 
-  const near = extremes.find((e) => Math.abs(parseLocal(e.t) - m) <= SLACK_MIN)
-  const phase = tidePhaseAt(m, extremes)
-  const tide_phase = near ? NAME[near.type] : phase ? (phase.rising ? 'creciente' : 'bajante') : null
+  // Sin altura, la etiqueta de fuente no significa nada.
+  const level_source = tide_height_m == null ? null : forecast.level?.source ?? 'marea'
 
-  return { tide_phase, tide_height_m, wind_kmh, wind_dir_deg }
+  return { tide_phase: phaseNameAt(m, extremes), tide_height_m, wind_kmh, wind_dir_deg, level_source }
 }
