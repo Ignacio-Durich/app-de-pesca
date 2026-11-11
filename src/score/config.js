@@ -44,3 +44,4 @@ export const UNCERTAIN_KMH = 10
 export const NIGHT_CAP = 2
 export const WINDOW_MIN = 7
 export const MAX_WINDOWS = 3
+export const STATION_MAX_KM = 60 // [diseño] spec §8.1

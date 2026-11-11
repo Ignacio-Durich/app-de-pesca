@@ -10,7 +10,7 @@ export const localToUtcDate = (iso, utcOffsetSeconds) =>
 
 // Itinerario: el viaje es en Argentina (UTC−3, sin horario de verano). Fecha y hora locales del
 // viaje <-> instante real (timestamptz). Nunca depende de la zona del teléfono.
-const TRIP_OFFSET_MIN = -180
+export const TRIP_OFFSET_MIN = -180
 export const toInstant = (date, time) => `${date}T${time}:00-03:00`
 export function fromInstant(iso) {
   const local = formatLocal(Math.floor(Date.parse(iso) / 60000) + TRIP_OFFSET_MIN)

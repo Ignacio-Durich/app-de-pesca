@@ -1,0 +1,16 @@
+[
+  {
+    "id": "zarate",
+    "name": "Zárate",
+    "estacionId": 5907,
+    "lat": -34.1019,
+    "lon": -59.0089,
+    "obsSeries": 29437,
+    "pronoCal": 440,
+    "pronoSeries": 29534,
+    "alertM": 2.0,
+    "evacM": 2.2,
+    "lowM": 0.3,
+    "source": "API del INA a5 (alerta.ina.gob.ar), verificado 29/10 y 11/11/2026"
+  }
+]
