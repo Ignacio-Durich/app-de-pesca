@@ -1,6 +1,6 @@
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, vi, afterEach } from 'vitest'
 import { MODELS } from '../src/forecast/fetch.js'
-import { tripDays, nowLocal, pickDay, countdown, slotNow, noGoRanges, tideReaches, dayLabel, phaseLabel, heroWindows, riverLine, waterTempEstimate, readMode } from '../src/forecast/view.js'
+import { tripDays, nowLocal, pickDay, countdown, slotNow, noGoRanges, tideReaches, dayLabel, phaseLabel, heroWindows, riverLine, waterTempEstimate, readMode, markPlacement } from '../src/forecast/view.js'
 
 describe('trip days', () => {
   it('lists every day of the trip, inclusive', () => {
@@ -105,7 +105,40 @@ describe('river copy', () => {
   it('waterTempEstimate is null with under 24 h of data', () => {
     expect(waterTempEstimate(hrs(23, 20), '2026-11-11')).toBeNull()
   })
-  it('readMode defaults to costa', () => {
+  it('riverLine has no negative zero', () => {
+    expect(riverLine(-0.4)).toBe('Río estable, +0 cm/día')
+  })
+  it('waterTempEstimate uses the median of models and excludes T00:00 of the day', () => {
+    const ks = Object.keys(MODELS)
+    const mk = (n, vals, from = '2026-11-06T00:00') => Array.from({ length: n }, (_, i) => ({
+      t: new Date(Date.parse(from + 'Z') + i * 3600000).toISOString().slice(0, 16),
+      temp: Object.fromEntries(ks.map((k, j) => [k, vals[j] ?? null])),
+    }))
+    expect(waterTempEstimate(mk(120, [10, 20, 90]), '2026-11-11')).toBe(20)
+    // una hora extra a las 00:00 del día (vale 99) no cuenta
+    const h = [...mk(120, [20]), ...mk(1, [99], '2026-11-11T00:00')]
+    expect(waterTempEstimate(h, '2026-11-11')).toBe(20)
+  })
+})
+
+describe('markPlacement', () => {
+  it('puts marks in range as lines and out-of-range ones at the edges', () => {
+    expect(markPlacement({ alert: 2, low: 0.3 }, 0.8, 1.1)).toEqual([
+      { kind: 'alerta', v: 2, edge: 'top' }, { kind: 'aguas bajas', v: 0.3, edge: 'bottom' },
+    ])
+    expect(markPlacement({ alert: 1, low: 0.3 }, 0.3, 1.1).map((m) => m.edge)).toEqual(['in', 'in'])
+    expect(markPlacement(null, 0, 1)).toEqual([])
+  })
+})
+
+describe('readMode', () => {
+  afterEach(() => vi.unstubAllGlobals())
+  it('reads the stored mode, defaulting to costa', () => {
+    vi.stubGlobal('localStorage', { getItem: () => 'embarcado' })
+    expect(readMode()).toBe('embarcado')
+    vi.stubGlobal('localStorage', { getItem: () => null })
+    expect(readMode()).toBe('costa')
+    vi.stubGlobal('localStorage', { getItem: () => { throw new Error('x') } })
     expect(readMode()).toBe('costa')
   })
 })

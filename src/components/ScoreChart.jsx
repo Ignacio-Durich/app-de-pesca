@@ -1,6 +1,6 @@
 // Curva de marea + ventanas + noche + barras de puntaje por hora + capturas. SVG a mano (sin librería).
 import { parseLocal } from '../lib/time.js'
-import { hhmm, dec } from '../forecast/view.js'
+import { hhmm, dec, markPlacement } from '../forecast/view.js'
 import { SCORE_MAX, WINDOW_MIN } from '../score/config.js'
 
 const W = 360, PAD = 8, TOP = 22, TIDE_H = 110, GAP = 10, BAR_H = 50, AXIS = 14
@@ -27,8 +27,7 @@ export function ScoreChart({ day, hours, extremes, windows, slots, sun, catches 
     ? dayBand.map((b, i) => `${i ? 'L' : 'M'}${x(b.t).toFixed(1)},${y(b.hi).toFixed(1)}`).join('') +
       [...dayBand].reverse().map((b) => `L${x(b.t).toFixed(1)},${y(b.lo).toFixed(1)}`).join('') + 'Z'
     : ''
-  const markLines = [['alert', 'alerta'], ['low', 'aguas bajas']]
-    .map(([k, name]) => [name, marks?.[k]]).filter(([, v]) => v != null && v >= lo && v <= hi)
+  const placed = markPlacement(marks, lo, hi)
 
   const barTop = TOP + TIDE_H + GAP
   const perHour = Array.from({ length: 24 }, (_, i) => {
@@ -44,11 +43,15 @@ export function ScoreChart({ day, hours, extremes, windows, slots, sun, catches 
         <rect key={w.start} class="sc-win" x={x(w.start)} y={0} width={x(w.end) - x(w.start)} height={barTop + BAR_H} />
       ))}
       {bandPath && <path class="sc-band" d={bandPath} />}
-      {markLines.map(([name, v]) => (
-        <g key={name}>
+      {placed.map(({ kind, v, edge }) => edge === 'in' ? (
+        <g key={kind}>
           <line class="sc-mark" x1={PAD} x2={W - PAD} y1={y(v)} y2={y(v)} />
-          <text class="sc-label" x={W - PAD} y={y(v) - 3} text-anchor="end">{name} {dec(v)} m</text>
+          <text class="sc-label" x={W - PAD} y={y(v) - 3} text-anchor="end">{kind} {dec(v)} m</text>
         </g>
+      ) : (
+        <text key={kind} class="sc-label" x={W - PAD} y={edge === 'top' ? 10 : TOP + TIDE_H - 2} text-anchor="end">
+          {kind} {dec(v)} m {edge === 'top' ? '↑' : '↓'}
+        </text>
       ))}
       {path && <path class="sc-tide" d={path} />}
       {extremes.map((e) => {

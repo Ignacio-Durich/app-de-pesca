@@ -61,12 +61,15 @@ const MODE_KEY = 'forecastMode'
 export const readMode = () => {
   try { return localStorage.getItem(MODE_KEY) === 'embarcado' ? 'embarcado' : 'costa' } catch { return 'costa' }
 }
+export const saveMode = (m) => {
+  try { localStorage.setItem(MODE_KEY, m) } catch { /* modo privado */ }
+}
 
 // Río: "Río creciendo, +8 cm/día" (spec §8.3).
 export function riverLine(cmDay) {
   const label = trendLabel(cmDay)
   if (!label) return 'Río: sin tendencia'
-  const n = Math.round(cmDay)
+  const n = Math.round(cmDay) || 0 // sin -0
   return `Río ${label}, ${n < 0 ? '-' : '+'}${Math.abs(n)} cm/día`
 }
 
@@ -76,4 +79,11 @@ export function waterTempEstimate(hours, dateIso) {
   const v = hours.filter((h) => h.t >= start && h.t < end)
     .map((h) => median(Object.keys(MODELS).map((k) => h.temp?.[k]))).filter((x) => x != null)
   return v.length < 24 ? null : v.reduce((a, b) => a + b, 0) / v.length
+}
+
+// Niveles de alerta / aguas bajas: dentro del rango del gráfico es una línea; fuera, un texto en el borde.
+export function markPlacement(marks, lo, hi) {
+  return [['alert', 'alerta'], ['low', 'aguas bajas']]
+    .filter(([k]) => marks?.[k] != null)
+    .map(([k, kind]) => ({ kind, v: marks[k], edge: marks[k] > hi ? 'top' : marks[k] < lo ? 'bottom' : 'in' }))
 }
