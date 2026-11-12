@@ -29,7 +29,7 @@ describe('zonesAt', () => {
   })
 
   test('zones.json real: Chacras del Paraná es Buenos Aires', () => {
-    expect(zonesAt(-33.968, -59.256, zones)).toContain('ba')
+    expect(zonesAt(-33.968, -59.256, zones)).toEqual(['ba'])
   })
 
   test('zones.json trae las dos provincias con fuente OSM', () => {

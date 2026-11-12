@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'preact/hooks'
 import species from '../data/species.json'
-import { keepNote, matches } from '../species/view.js'
+import { keepNote, matches, vedaLine } from '../species/view.js'
+import { distanceBearing } from '../map/nav.js'
+import { ZONE_RADIUS_KM } from '../score/config.js'
 import { license, note, seasonNote, rules } from '../data/regulation.json'
 import rio from '../data/regulation-rio.json'
 import { zonesAt } from '../regulation/zones.js'
@@ -25,10 +27,10 @@ function Field({ label, children }) {
   return <p><strong>{label}:</strong> {children ?? NV}</p>
 }
 
-function SpeciesCard({ s }) {
+function SpeciesCard({ s, trip }) {
   const [open, setOpen] = useState(false)
   const [big, setBig] = useState(false)
-  const keep = keepNote(s)
+  const keep = keepNote(s, { start: trip?.start_date, end: trip?.end_date })
   return (
     <div class="card sp">
       <div class="sp-head">
@@ -41,6 +43,7 @@ function SpeciesCard({ s }) {
           <h2>{s.name}</h2>
           {s.zones && <p class="muted small">{s.zones.map((z) => rio[z].name).join(' y ')}</p>}
           <p class={keep.release ? 'sp-keep release' : 'sp-keep'}>{keep.text}</p>
+          {s.veda && <p><strong>{vedaLine(s.veda)}</strong></p>}
           <p><strong>Talla mínima:</strong> {s.minSizeCm != null ? `${s.minSizeCm} cm` : NV}</p>
           <p><strong>Cupo diario:</strong> {s.dailyLimit ?? NV}</p>
         </div>
@@ -100,7 +103,8 @@ function License({ lic }) {
   )
 }
 
-// GPS solo si el permiso ya está dado: esta pantalla no pide permiso (spec §8.4). Si no, el lugar del viaje.
+// GPS solo si el permiso ya está dado: esta pantalla no pide permiso (spec §8.4). Si no, o si el GPS está
+// fuera del radio de la zona del viaje (ZONE_RADIUS_KM.rio), el lugar del viaje.
 function useRiverPosition(trip) {
   const [gps, setGps] = useState(null)
   useEffect(() => {
@@ -111,7 +115,8 @@ function useRiverPosition(trip) {
     }).catch(() => {})
     return () => { alive = false; if (id != null) navigator.geolocation.clearWatch(id) }
   }, [])
-  return gps ? { lat: gps.latitude, lon: gps.longitude, from: 'tu GPS' } : { lat: trip.lat, lon: trip.lon, from: 'el lugar del viaje' }
+  const near = gps && distanceBearing(trip.lat, trip.lon, gps.latitude, gps.longitude).km <= ZONE_RADIUS_KM.rio
+  return near ? { lat: gps.latitude, lon: gps.longitude, from: 'tu GPS' } : { lat: trip.lat, lon: trip.lon, from: 'el lugar del viaje' }
 }
 
 function RiverSpecies({ trip, q, setQ }) {
@@ -130,7 +135,7 @@ function RiverSpecies({ trip, q, setQ }) {
         <p class="muted small">Límite entre provincias aproximado, de OpenStreetMap (© OpenStreetMap contributors, ODbL).</p>
       </div>
 
-      {shown.map((s) => <SpeciesCard key={s.id} s={s} />)}
+      {shown.map((s) => <SpeciesCard key={s.id} s={s} trip={trip} />)}
       {shown.length === 0 && <p class="muted">Ninguna especie coincide con "{q}".</p>}
 
       {(zones.length ? zones : ['ba', 'er']).map((z) => (
@@ -159,7 +164,7 @@ export function Species({ trip }) {
         <p class="muted">{seasonNote.text}</p>
       </div>
 
-      {shown.map((s) => <SpeciesCard key={s.id} s={s} />)}
+      {shown.map((s) => <SpeciesCard key={s.id} s={s} trip={trip} />)}
       {shown.length === 0 && <p class="muted">Ninguna especie coincide con "{q}".</p>}
 
       <Rules list={rules} />

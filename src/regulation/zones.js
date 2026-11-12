@@ -1,5 +1,10 @@
 // Zona de reglamento según la posición (spec §8.4): punto en polígono, más las zonas cuyo borde
 // queda a ≤ edgeKm (cerca del límite valen las dos). Polígonos de src/data/zones.json ([lon, lat]).
+// Ojo, consumidores:
+// - zones.json puede tener varias entradas con el mismo id (Buenos Aires: continente + Martín García),
+//   cada una con su `polygon`, un `holes` opcional y el `bbox` del recorte. Se agrupa por id, no por entrada.
+// - species.json tiene dorado-ba y dorado-er, los dos con name "Dorado": no indexar por name solo, ni
+//   suponer un id por especie; la clave es id, y para mostrar, name + zones.
 import zonesJson from '../data/zones.json'
 import { ZONE_EDGE_KM } from '../score/config.js'
 
