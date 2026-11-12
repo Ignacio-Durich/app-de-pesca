@@ -63,3 +63,9 @@ export const RIVER = {
 
 // [diseño] spec §8.2: presión. La spec no fija "sube rápido": +2 hPa en 6 h, simétrico a la caída.
 export const PRESSURE = { hours: 6, deltaHpa: 2, drop: 1.0, stable: 0.6, rise: 0.3 }
+
+// [diseño] spec §8.6: puntaje de pesqueros. radiusM: capturas del grupo "en el lugar"; levelSimilarM: altura parecida;
+// outOfRangePenalty: fuera del rango de altura cargado; historyOne/historyMany: +1 con 1-2 capturas, +2 con 3 o más.
+export const SPOT = { radiusM: 300, levelSimilarM: 0.2, outOfRangePenalty: 3, historyOne: 1, historyMany: 2, manyFrom: 3, top: 3, centralKm: 2 }
+// Central nuclear Atucha (§8.6): sin zona de exclusión confirmada, los pesqueros a menos de SPOT.centralKm llevan aviso.
+export const ATUCHA = { lat: -33.9695, lon: -59.2061, source: 'OpenStreetMap (Nominatim), 11/11/2026' }
