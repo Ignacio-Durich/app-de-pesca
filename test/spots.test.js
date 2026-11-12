@@ -142,6 +142,51 @@ describe('rankSpots', () => {
     expect(first({ spots: [far] }).lines).not.toContainEqual(w)
   })
 
+  it('level range with one bound', () => {
+    const s = spot({ best_level_min_m: 2.3 })
+    const r = first({ spots: [s], water: 'rio', forecast: river(2) })
+    expect(r.score).toBe(5)
+    expect(texts(r).some((t) => t.includes('desde 2,3 m'))).toBe(true)
+    expect(first({ spots: [s], water: 'rio', forecast: river(2.5) }).score).toBe(8)
+    expect(first({ spots: [spot({ best_level_max_m: 2.3 })], water: 'rio', forecast: river(2.5) }).score).toBe(5)
+  })
+
+  it('noGo slots are not eligible', () => {
+    const noGo = slotsOf().map((s) => ({ ...s, noGo: s.t.endsWith('14:00') }))
+    const r = first({ slots: noGo, mode: 'embarcado' })
+    expect(r.score).toBe(3)
+    expect(r.best.t).not.toBe(`${DAY}T14:00`)
+    const all = slotsOf().map((s) => ({ ...s, noGo: true }))
+    const z = first({ slots: all, mode: 'embarcado' })
+    expect(z.score).toBe(0)
+    expect(z.best).toBe(null)
+    expect(texts(z)).toContain('ninguna hora sirve hoy (no conviene salir)')
+  })
+
+  it('night hours count only with night fishing', () => {
+    const slots = slotsOf(9, '02:00')
+    expect(first({ slots, nightFishing: false }).score).toBe(3)
+    const on = first({ slots, nightFishing: true })
+    expect(on.score).toBe(9)
+    expect(on.best.t).toBe(`${DAY}T02:00`)
+  })
+
+  it('no water message only when no slot has the tide phase', () => {
+    // bajamar existe (06:46 y 18:50) pero esas horas son noGo: otro motivo
+    const slots = slotsOf().map((s) => ({ ...s, noGo: ['06:30', '07:00', '18:30', '19:00'].some((h) => s.t.endsWith(h)) }))
+    const r = first({ spots: [spot({ best_tide: 'bajamar' })], slots, mode: 'embarcado' })
+    expect(r.score).toBe(0)
+    expect(texts(r)).toContain('ninguna hora sirve hoy (no conviene salir)')
+    expect(texts(r)).not.toContain('hoy no le da el agua')
+  })
+
+  it('Atucha boundary at 2 km', () => {
+    const w = 'zona de la central: verificar si se puede pescar'
+    const at = (km) => first({ spots: [spot({ lat: ATUCHA.lat + km / 111.195, lon: ATUCHA.lon })] }).lines.map((l) => l.text)
+    expect(at(1.999)).toContain(w)
+    expect(at(2.01)).not.toContain(w)
+  })
+
   it('window line', () => {
     const r = first()
     expect(r.lines[0].origin).toBe('diseño')

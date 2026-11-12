@@ -31,7 +31,7 @@ function withTail(lines, spot) {
   return lines
 }
 
-function rankOne({ spot, catches, slots, extremes, forecast, mode, water, nightFishing, from }) {
+function rankOne({ spot, catches, slots, extremes, forecast, mode, water, nightFishing, from, day }) {
   const lines = []
   const rio = water === 'rio'
   const km = from ? distanceBearing(from.lat, from.lon, spot.lat, spot.lon).km : null
@@ -43,7 +43,6 @@ function rankOne({ spot, catches, slots, extremes, forecast, mode, water, nightF
   } else if (spot.best_tide) {
     lines.push({ text: 'sin altura para aplicar la regla', origin: 'aviso' })
   }
-  const day = slots[0]?.t.slice(0, 10)
   const note = rio && forecast.level ? riverLine(trendCmPerDay(forecast.level.points, day)) : undefined
   const eligible = use.filter((s) => s.score != null && !s.noGo && (nightFishing || !s.night))
   let best = null
@@ -51,15 +50,17 @@ function rankOne({ spot, catches, slots, extremes, forecast, mode, water, nightF
 
   if (!best) {
     // spec §8.6: con best_tide y sin horas en esa fase, "hoy no le da el agua"
-    const text = spot.best_tide && extremes.length ? 'hoy no le da el agua' : 'ninguna hora sirve hoy (no conviene salir)' // [diseño] sin copia en la spec
-    lines.push({ text, origin: 'diseño' })
+    // "hoy no le da el agua" solo si ningún slot cae en esa fase; si los hay pero no sirven (noGo, noche) es otro motivo
+    const noWater = spot.best_tide && extremes.length && !use.some((s) => s.score != null)
+    // [diseño] sin copia en la spec
+    lines.push({ text: noWater ? 'hoy no le da el agua' : 'ninguna hora sirve hoy (no conviene salir)', origin: 'diseño' })
     return { spot, score: 0, best: null, km, lines: withTail(lines, spot) }
   }
   const window = findWindows(use, { nightFishing, mode, note: note ?? undefined }).find((w) => w.start <= best.t && best.t < w.end) ?? null
   lines.unshift({
     text: window
       ? `Ventana ${hhmm(window.start)}–${hhmm(window.end)} · ${best.score}/10 · ${window.reason}`
-      : `Mejor hora ${hhmm(best.t)} · ${best.score}/10`,
+      : `Mejor hora ${hhmm(best.t)} · ${best.score}/10`, // [diseño] sin copia en la spec
     origin: 'diseño',
   })
   let score = Math.round(best.score)
@@ -72,7 +73,7 @@ function rankOne({ spot, catches, slots, extremes, forecast, mode, water, nightF
     if (h == null) lines.push({ text: 'sin pronóstico de altura', origin: 'aviso' })
     else if ((lo != null && h < lo) || (hi != null && h > hi)) {
       score -= SPOT.outOfRangePenalty
-      lines.push({ text: `Altura prevista ${dec(h)} m, fuera del rango que cargaron (${range}): −${SPOT.outOfRangePenalty}`, origin: 'diseño' })
+      lines.push({ text: `Altura prevista ${dec(h)} m, fuera del rango que cargaron (${range}): −${SPOT.outOfRangePenalty}`, origin: 'diseño' }) // [diseño] sin copia en la spec
     } else lines.push({ text: `Altura prevista ${dec(h)} m, dentro del rango que cargaron (${range})`, origin: 'diseño' })
   }
 
@@ -90,7 +91,7 @@ function rankOne({ spot, catches, slots, extremes, forecast, mode, water, nightF
     for (const c of similar) by[c.species ?? 'capturas'] = (by[c.species ?? 'capturas'] ?? 0) + 1
     const what = Object.entries(by).map(([sp, n]) => `${n} ${sp}`).join(', ')
     const hs = similar.map((c) => c.tide_height_m)
-    const cond = rio ? ` con el río entre ${dec(Math.min(...hs))} y ${dec(Math.max(...hs))} m` : ` con ${phase}`
+    const cond = rio ? ` con el río entre ${dec(Math.min(...hs))} y ${dec(Math.max(...hs))} m` : ` con ${phase}` // [diseño] sin copia en la spec (variante de mar)
     const last = similar.map((c) => c.caught_at).sort().at(-1)
     lines.push({ text: `El grupo sacó ${what} acá${cond} (última: ${dmy(last)})`, origin: 'grupo' })
   } else lines.push({ text: 'sin capturas del grupo todavía', origin: 'grupo' })
@@ -98,11 +99,12 @@ function rankOne({ spot, catches, slots, extremes, forecast, mode, water, nightF
   return { spot, score: Math.max(0, Math.min(SCORE_MAX, score)), best: { t: best.t, window }, km, lines: withTail(lines, spot) }
 }
 
-export function rankSpots({ spots, catches = [], slots, extremes, forecast, mode, water = 'mar', nightFishing, from }) {
+// `from` (opcional): lugar desde el que se mide `km`; por defecto forecast.lat/lon (el lugar del viaje).
+export function rankSpots({ spots, catches = [], slots, extremes, forecast, mode, water = 'mar', nightFishing, from, day }) {
   const origin = from ?? (forecast.lat != null && forecast.lon != null ? { lat: forecast.lat, lon: forecast.lon } : null)
   return spots
     .filter((s) => s.access == null || s.access === 'ambos' || s.access === mode)
-    .map((spot) => rankOne({ spot, catches, slots, extremes, forecast, mode, water, nightFishing, from: origin }))
+    .map((spot) => rankOne({ spot, catches, slots, extremes, forecast, mode, water, nightFishing, from: origin, day: day ?? slots[0]?.t.slice(0, 10) }))
     .sort((a, b) => b.score - a.score || (a.km ?? 0) - (b.km ?? 0))
 }
 
@@ -112,5 +114,5 @@ export function rankForTrip(trip, forecast, spots, catches, mode, day) {
   const extremes = findExtremes(forecast.hours)
   const slots = scoreDay(forecast, extremes, day, mode, { nightFishing, water })
   const near = within(spots, trip.lat, trip.lon, zoneRadiusKm(trip))
-  return rankSpots({ spots: near, catches, slots, extremes, forecast, mode, water, nightFishing, from: { lat: trip.lat, lon: trip.lon } })
+  return rankSpots({ spots: near, catches, slots, extremes, forecast, mode, water, nightFishing, day, from: { lat: trip.lat, lon: trip.lon } })
 }
