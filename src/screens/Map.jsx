@@ -7,7 +7,9 @@ import { useRows } from '../lib/useRows.js'
 import { toInstant, fromInstant } from '../lib/time.js'
 import { cachedForecast } from '../forecast/cache.js'
 import { findExtremes } from '../forecast/tides.js'
-import { dec, dayLabel } from '../forecast/view.js'
+import { dec, dayLabel, readMode } from '../forecast/view.js'
+import { rankForTrip } from '../score/spots.js'
+import { Lines, useGroupCatches } from '../components/WhereList.jsx'
 import { conditionsAt } from '../catches/conditions.js'
 import { regionFor, basemapLayer } from '../map/basemap.js'
 import { DEPTH_CACHE } from '../map/tiles.js'
@@ -29,6 +31,7 @@ const LEGEND = Array.from({ length: BANDS }, (_, b) => ({
   tick: b % 2 ? '' : b === BANDS - 1 ? `${b * BAND_M}+` : `${b * BAND_M}`,
 }))
 
+const ACCESS = { costa: 'costa', embarcado: 'embarcado', ambos: 'las dos' }
 const nowTrip = () => fromInstant(new Date().toISOString())
 const depthText = (alt) => (alt == null ? 'sin dato' : `${dec(-alt, 1)} m`)
 const m = (v) => `${dec(Number(v), 1)} m`
@@ -68,6 +71,15 @@ export function MapScreen({ trip, me, tripId }) {
   const [syncing, setSyncing] = useState(false)
   const [loadErr, setLoadErr] = useState(false)
   const sel = spots.find((s) => s.id === selId)
+  // "Hoy: N/10" con el pronóstico guardado (sin él, nada). Solo hay puntaje si el modo deja entrar al spot.
+  const [forecast, setForecast] = useState(null)
+  const groupCatches = useGroupCatches(trip)
+  useEffect(() => { cachedForecast(trip).then((r) => setForecast(r.forecast ?? null), () => {}) }, [trip.lat, trip.lon])
+  const ranked = useMemo(
+    () => (forecast ? rankForTrip(trip, forecast, spotRows, groupCatches, readMode(), nowTrip().date) : null),
+    [trip, forecast, spotRows, groupCatches],
+  )
+  const selRank = ranked?.find((r) => r.spot.id === selId)
   const probe = (lat, lon) => (lm.current?.cache ? depthAt(lat, lon, lm.current.cache) : Promise.resolve(null))
 
   // GPS (como Emergencias). Se limpia al salir de la pantalla.
@@ -190,11 +202,21 @@ export function MapScreen({ trip, me, tripId }) {
     setMsg(res.every((r) => r.status === 'fulfilled') ? 'Spots y sondeos actualizados.' : 'Sin señal: se ve lo guardado en el teléfono.')
   }
   const close = () => setMode(null)
+  // ?spot=<id> (viene de "Dónde"): se selecciona, se centra y se abre "Ir a punto". El router solo mira el path.
+  const wanted = useRef(new URLSearchParams(location.search).get('spot'))
+  useEffect(() => {
+    const s = ready && wanted.current && spots.find((x) => x.id === wanted.current)
+    if (!s) return
+    wanted.current = null
+    setSelId(s.id)
+    setMode('go')
+    lm.current?.map.setView([s.lat, s.lon])
+  }, [ready, spots])
   const focus = (s) => { setSelId(s.id); setMode(null); lm.current?.map.setView([s.lat, s.lon]) }
 
   const markSpot = async (fields) => {
     await saveRow('spots', scope, {
-      id: crypto.randomUUID(), lat: at.latitude, lon: at.longitude, species: [], best_tide: null, notes: null,
+      id: crypto.randomUUID(), lat: at.latitude, lon: at.longitude, species: [], best_tide: null, notes: null, access: null,
       created_by: me ?? null, created_at: new Date().toISOString(), ...fields,
     })
     await reloadSpots()
@@ -281,7 +303,7 @@ export function MapScreen({ trip, me, tripId }) {
       <button class="btn" onClick={sync} disabled={syncing}>{syncing ? 'Actualizando…' : 'Actualizar spots y sondeos'}</button>
       {msg && <p class="muted">{msg}</p>}
       {(mode === 'mark' || mode === 'sound') && !at && <GpsHelp err={gpsErr} onClose={close} />}
-      {mode === 'mark' && at && <MarkForm at={at} defaultName={`Punto ${nowTrip().time}`} onSave={markSpot} onCancel={close} />}
+      {mode === 'mark' && at && <MarkForm river={river} at={at} defaultName={`Punto ${nowTrip().time}`} onSave={markSpot} onCancel={close} />}
       {mode === 'sound' && at && <SoundingForm at={at} onSave={addSounding} onCancel={close} />}
 
       {sel && (
@@ -290,15 +312,24 @@ export function MapScreen({ trip, me, tripId }) {
           <p class="muted small">
             {[
               sel.species?.length && sel.species.join(', '),
-              sel.best_tide && `marea: ${sel.best_tide}`,
+              sel.access && `desde: ${ACCESS[sel.access] ?? sel.access}`,
+              sel.best_tide && `${river ? 'agua' : 'marea'}: ${sel.best_tide}`,
+              (sel.best_level_min_m != null || sel.best_level_max_m != null) && `altura: ${sel.best_level_min_m == null ? '…' : m(sel.best_level_min_m)} a ${sel.best_level_max_m == null ? '…' : m(sel.best_level_max_m)}`,
               sel.depth_m != null && `profundidad: ${m(sel.depth_m)}`,
               sel.created_by && `cargó ${sel.created_by}`,
             ].filter(Boolean).join(' · ') || 'Sin datos'}
           </p>
+          {sel.source && !selRank && <p class="muted small">Fuente: {sel.source}</p>}
           {sel.notes && <p>{sel.notes}</p>}
+          {selRank && (
+            <details open>
+              <summary>Hoy: {selRank.score}/10</summary>
+              <Lines lines={selRank.lines} />
+            </details>
+          )}
           <p class="muted small">{toDegMin(sel.lat, sel.lon)}</p>
           {mode === 'edit' ? (
-            <SpotEditor key={sel.id} spot={sel} onSave={editSpot} onCancel={close} />
+            <SpotEditor key={sel.id} spot={sel} river={river} onSave={editSpot} onCancel={close} />
           ) : (
             <div class="row">
               <button class="btn" onClick={() => setMode('edit')}>Editar</button>

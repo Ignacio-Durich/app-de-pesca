@@ -16,6 +16,7 @@ import { ScoreChart } from '../components/ScoreChart.jsx'
 import { ModelTable } from '../components/ModelTable.jsx'
 import { useRows } from '../lib/useRows.js'
 import { fromInstant } from '../lib/time.js'
+import { WhereSection } from '../components/WhereList.jsx'
 
 export function Forecast({ trip, tripId }) {
   const [catches] = useRows('catches', tripId)
@@ -71,7 +72,7 @@ export function Forecast({ trip, tripId }) {
   const station = river ? stations.find((x) => x.id === res.forecast.level?.stationId) : null
   return (
     <>
-      <DayView trip={trip} forecast={res.forecast} now={now} catches={catches} station={station} />
+      <DayView trip={trip} tripId={tripId} forecast={res.forecast} now={now} catches={catches} station={station} />
       <footer class="data-age">
         <span class={age.amber ? 'amber' : ''}>{age.text}</span>
         {res.error && !loading && <span class="muted"> · no se pudo actualizar</span>}
@@ -85,7 +86,7 @@ export function Forecast({ trip, tripId }) {
   )
 }
 
-function DayView({ trip, forecast: f, now, catches, station }) {
+function DayView({ trip, tripId, forecast: f, now, catches, station }) {
   const days = useMemo(() => tripDays(trip.start_date, trip.end_date), [trip.start_date, trip.end_date])
   const nowIso = nowLocal(now, f.utcOffsetSeconds)
   const today = nowIso.slice(0, 10)
@@ -147,6 +148,8 @@ function DayView({ trip, forecast: f, now, catches, station }) {
           <div class="small">Viento de más de {NOGO_WIND_KMH} km/h u olas de más de {dec(WAVE_NOGO_M)} m.</div>
         </div>
       )}
+
+      {hours.length > 0 && <WhereSection trip={trip} tripId={tripId} forecast={f} mode={mode} day={day} />}
 
       <details class="card">
         <summary>Ver hora por hora</summary>
