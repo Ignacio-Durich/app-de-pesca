@@ -65,4 +65,14 @@ Antes: la migración 004 aplicada en Supabase y `lima.pmtiles` subido a R2 (sin 
 - [ ] **Especies**: "Orilla … Buenos Aires"; el dorado muestra "Veda: 1/10 al 15/1"; las que no tienen regla dicen "no verificado".
 - [ ] **Emergencias**: Prefectura Zárate y VTS Zárate canal 72, con su "fuente".
 
-Probado en el navegador de la compu el 12/11/2026 (sin Supabase, con datos reales de Open-Meteo e INA): todo lo de arriba anduvo, salvo el mapa base y "Listo", que esperan a R2 y a la migración. El tiempo de apertura en WebKit con la región Lima y el satélite guardados queda para después de subir `lima.pmtiles`.
+Probado en el navegador de la compu el 12/11/2026 (sin Supabase, con datos reales de Open-Meteo e INA): todo lo de arriba anduvo, salvo el mapa base y "Listo", que esperan a R2 y a la migración. El 12/11/2026 se aplicó la migración 004 (con `rls.sql` sin errores) y se subió `lima.pmtiles` a R2.
+
+**Apertura en WebKit de Mac (12/11/2026):** app real (build de producción con service worker), abierta en "/" como desde el ícono, cada corrida en un proceso nuevo; mediana de 5 rondas alternadas, descartando la primera. Hasta ver el nombre del viaje:
+
+| Guardado | Página recibida | App visible | Desde lanzar el proceso |
+|---|---|---|---|
+| Solo el viaje | 8 ms | 44 ms | 167 ms |
+| + Lima (72.689.696 B) | 10 ms | 36 ms | 152 ms |
+| + Lima + 24.688 teselas de satélite (6 KB c/u, en IndexedDB) | 8 ms | 43 ms | 164 ms |
+
+Las diferencias entran en el ruido entre corridas: ni el mapa de Lima ni el satélite en IndexedDB demoran la apertura. Esto mide cómo escala, no el tiempo absoluto de un iPhone; no incluye la capa de profundidad (Cache API). Falta confirmarlo con un video en el teléfono.
