@@ -109,7 +109,7 @@ export function TripShell({ id, tab = 'pronostico' }) {
       </main>
       <nav class="tabs">
         {TABS.map(([key, label]) => (
-          <Link key={key} href={`/t/${id}/${key}`} class={key === active ? 'tab on' : 'tab'}>{label}</Link>
+          <Link key={key} href={`/t/${id}/${key}`} class={key === active ? 'tab on' : 'tab'} data-ico={key}>{label}</Link>
         ))}
       </nav>
     </div>

@@ -4,6 +4,7 @@ import { makeClient } from './lib/db.js'
 import { startAutoFlush } from './lib/queue.js'
 import { recentTrips, startPath } from './trips/trips.js'
 import './styles.css'
+import './icons.css'
 
 startAutoFlush(makeClient)
 

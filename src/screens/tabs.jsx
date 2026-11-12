@@ -18,13 +18,13 @@ function Mas({ tripId }) {
     } catch { /* cancelado */ }
   }
   return (
-    <section class="stack">
+    <nav class="menu" aria-label="Más">
       {MAS_ITEMS.map(([key, label]) => (
-        <Link key={key} class="btn big" href={`/t/${tripId}/${key}`}>{label}</Link>
+        <Link key={key} class="menu-item" data-ico={key} href={`/t/${tripId}/${key}`}>{label}</Link>
       ))}
-      <button class="btn big" onClick={share}>Compartir link del viaje</button>
-      <Link class="btn big" href="/">Otros viajes</Link>
-    </section>
+      <button class="menu-item" data-ico="compartir" onClick={share}>Compartir link del viaje</button>
+      <Link class="menu-item" data-ico="viajes" href="/">Otros viajes</Link>
+    </nav>
   )
 }
 

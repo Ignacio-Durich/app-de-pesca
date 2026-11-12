@@ -4,7 +4,7 @@ import { Link } from '../nav.jsx'
 import { listRows, nearScope } from '../lib/repo.js'
 import { useRows } from '../lib/useRows.js'
 import { rankForTrip, mergeCatches } from '../score/spots.js'
-import { SPOT } from '../score/config.js'
+import { SPOT, WINDOW_MIN } from '../score/config.js'
 import { dec, hhmm } from '../forecast/view.js'
 
 const NOTICE = 'Al principio casi todos los lugares tienen el mismo puntaje: solo los distinguen sus reglas y lo que pesquen ustedes. Carguen las capturas en el lugar donde salieron.' // spec §8.6, aviso fijo
@@ -62,8 +62,11 @@ export function WhereSection({ trip, tripId, forecast, mode, day }) {
       {shown.map((r) => (
         <div key={r.spot.id} class="where">
           <Link href={`/t/${tripId}/mapa?spot=${r.spot.id}`} class="where-head">
-            <strong>{r.spot.name || 'Spot sin nombre'}</strong>
-            <span class="muted"> · {r.score}/10{r.best && ` · ${hhmm(r.best.t)}`}{r.km != null && ` · ${dec(r.km, 1)} km`}</span>
+            <span class={r.score >= WINDOW_MIN ? 'where-score' : 'where-score weak'}>{r.score}/10</span>
+            <span class="where-text">
+              <strong>{r.spot.name || 'Spot sin nombre'}</strong>
+              <span class="muted small">{[r.best && hhmm(r.best.t), r.km != null && `${dec(r.km, 1)} km`].filter(Boolean).join(' · ')}</span>
+            </span>
           </Link>
           <details>
             <summary>Por qué</summary>
