@@ -48,3 +48,21 @@ Hacerla con tiempo antes del sábado 7/11, con wifi. Anotar en cada punto: ✓, 
 - Borrar las capturas de prueba desde la app.
 - Abrir la app una vez con señal, esperar unos 30 segundos, cerrarla y volver a abrirla. Así queda la última versión antes de salir.
 - Contarme lo que falló. No voy a publicar cambios después de la prueba salvo que haga falta arreglar algo.
+
+## 6. Fase 2: viaje de río y "dónde pescar"
+Antes: la migración 004 aplicada en Supabase y `lima.pmtiles` subido a R2 (sin eso, "Preparar viaje" no llega a "Listo").
+
+1. Inicio → **Crear viaje**: Agua **Río**, "Lima", −33.968, −59.256. "Pesca nocturna" se marca sola.
+2. Más → **Preparar viaje** → esperar **"Listo para offline ✓"** (sin "Profundidad"; con "Capturas del grupo").
+3. Modo avión y app cerrada del todo. Abrir:
+- [ ] **Pronóstico**: "Río creciendo/estable/bajando, ±N cm/día" debajo de "Anzuelos al agua"; el pie dice "Altura: INA (Zárate)".
+- [ ] **Ver hora por hora**: curva del río con la franja gris, máximos y mínimos con hora, y las marcas de alerta (2,0 m) y aguas bajas (0,3 m) o su texto en el borde.
+- [ ] **Dónde**: los 3 mejores lugares con puntaje, hora y km; "Por qué" se abre; las líneas de diseño dicen "(regla de diseño)" y las de fuente tienen link.
+- [ ] Tocar un lugar → **Mapa** con "Hoy: N/10" y "Ir a punto" abierto.
+- [ ] **Mapa**: mapa base de Lima, sin capa de profundidad; "Spots cerca (100 km)".
+- [ ] "Marcar punto": "Desde" (Costa / Embarcado / Las dos) y "Altura recomendada del río"; con mínimo mayor que máximo avisa el error.
+- [ ] **Capturas**: una de prueba se guarda (en la base va con `level_source` = `ina:29437`).
+- [ ] **Especies**: "Orilla … Buenos Aires"; el dorado muestra "Veda: 1/10 al 15/1"; las que no tienen regla dicen "no verificado".
+- [ ] **Emergencias**: Prefectura Zárate y VTS Zárate canal 72, con su "fuente".
+
+Probado en el navegador de la compu el 12/11/2026 (sin Supabase, con datos reales de Open-Meteo e INA): todo lo de arriba anduvo, salvo el mapa base y "Listo", que esperan a R2 y a la migración. El tiempo de apertura en WebKit con la región Lima y el satélite guardados queda para después de subir `lima.pmtiles`.
