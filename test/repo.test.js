@@ -121,6 +121,11 @@ describe('repo', () => {
     expect(await R.listRows('catchesNear', R.nearScope(-33.968, -59.256))).toEqual([{ id: 'n1' }])
   })
 
+  it('pullCatchesNear with null data stores and returns []', async () => {
+    expect(await R.pullCatchesNear({ rpc: async () => ({ data: null, error: null }) }, 1, 2, 3)).toEqual([])
+    expect(await R.listRows('catchesNear', R.nearScope(1, 2))).toEqual([])
+  })
+
   it('pullCatchesNear throws on rpc error', async () => {
     await expect(R.pullCatchesNear({ rpc: async () => ({ data: null, error: new Error('x') }) }, 1, 2, 3)).rejects.toThrow('x')
   })

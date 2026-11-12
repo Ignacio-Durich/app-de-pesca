@@ -263,7 +263,7 @@ export function MapScreen({ trip, me, tripId }) {
           <>
             <p class="coords">{toDegMin(pos.latitude, pos.longitude)}</p>
             <p class="muted">
-              {pos.accuracy != null && `±${Math.round(pos.accuracy)} m`}{!river && ` · Profundidad estimada: ${depthText(posDepth)}`}
+              {pos.accuracy != null && `±${Math.round(pos.accuracy)} m${river ? '' : ' · '}`}{!river && `Profundidad estimada: ${depthText(posDepth)}`}
             </p>
             <button class="btn" onClick={() => lm.current?.map.setView(from)}>Centrar en mí</button>
           </>

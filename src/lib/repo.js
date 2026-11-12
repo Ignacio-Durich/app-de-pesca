@@ -32,17 +32,18 @@ export async function deleteRow(table, scope, id) {
   requestFlush()
 }
 
-// Trae lo del servidor y reemplaza lo local, salvo filas con op pendiente (gana lo local).
-// Excepción: respuesta vacía en un scope de viaje (ver abajo).
-// Lanza si hay error de red: la pantalla ya muestra lo local y puede ignorarlo.
 // Capturas del grupo cerca de un punto (RPC catches_near): se guardan en rows:catchesNear:<nearScope>.
 export async function pullCatchesNear(client, lat, lon, km) {
   const { data, error } = await client.rpc('catches_near', { p_lat: lat, p_lon: lon, p_km: km })
   if (error) throw error
-  await localSet(key('catchesNear', nearScope(lat, lon)), data)
-  return data
+  const rows = data ?? []
+  await localSet(key('catchesNear', nearScope(lat, lon)), rows)
+  return rows
 }
 
+// Trae lo del servidor y reemplaza lo local, salvo filas con op pendiente (gana lo local).
+// Excepción: respuesta vacía en un scope de viaje (ver abajo).
+// Lanza si hay error de red: la pantalla ya muestra lo local y puede ignorarlo.
 export async function pull(client, table, scope) {
   // Ids pendientes antes y después del pedido: un flush que termina mientras el select está
   // en vuelo ya no los tiene "después", pero el server pudo responder sin ese cambio.
@@ -50,7 +51,7 @@ export async function pull(client, table, scope) {
   let q = client.from(table).select('*')
   // trips se filtra por su propio id; el resto de lo del viaje por trip_id.
   if (!scope.startsWith('near:')) q = q.eq(table === 'trips' ? 'id' : 'trip_id', scope)
-  // ponytail: spots/sondeos se bajan enteros; el filtro de distancia (SPOTS_RADIUS_KM) es del lado cliente (en la pantalla). Alcanza con pocos datos.
+  // ponytail: spots/sondeos se bajan enteros; el filtro de distancia (zoneRadiusKm) es del lado cliente (en la pantalla). Alcanza con pocos datos.
   const { data, error } = await q
   if (error) throw error
   // Un [] del viaje casi siempre es un pedido roto (header/RLS, fila del viaje ausente), no "se borró
