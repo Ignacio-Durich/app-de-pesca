@@ -1,0 +1,72 @@
+{
+  "ba": {
+    "name": "Buenos Aires",
+    "note": "Orilla de Buenos Aires. El reglamento puede cambiar: antes de salir, mirá la versión vigente en la página oficial. La licencia es la misma de Buenos Aires que en el mar.",
+    "rules": [
+      {
+        "text": "Reglamento 2026, pág. 23 (principales centros de interés, \"Río\"): \"59 Río Paraná Inferior Incluyendo los Municipios\" San Nicolás de los Arroyos, Ramallo, San Pedro, Baradero, Zárate, Campana, Belén de Escobar y Tigre.",
+        "sources": [
+          { "title": "Reglamento de pesca deportiva 2026 (PBA), pág. 23", "url": "https://drive.google.com/file/d/1-6HWnpuQjw38iq0VY5R5mSJ5RnkCHgGk/view" },
+          { "title": "Pesca deportiva — gba.gob.ar", "url": "https://www.gba.gob.ar/desarrollo_agrario/pesca/pesca_deportiva" }
+        ]
+      },
+      {
+        "text": "Reglamento 2026, pág. 2: la pesca deportiva incluye \"la prohibición del uso de redes como medio mundo, trasmallo y espinel, en lagunas y ríos, y la tenencia obligatoria de la Licencia de Pesca Deportiva\". Pág. 3: \"Con una (1) caña en todos los ambientes acuáticos, sean ellos lacustres, fluviales o marítimos\".",
+        "sources": [
+          { "title": "Reglamento de pesca deportiva 2026 (PBA), págs. 2–3", "url": "https://drive.google.com/file/d/1-6HWnpuQjw38iq0VY5R5mSJ5RnkCHgGk/view" },
+          { "title": "Pesca deportiva — gba.gob.ar", "url": "https://www.gba.gob.ar/desarrollo_agrario/pesca/pesca_deportiva" }
+        ]
+      },
+      {
+        "text": "Veda de pejerrey (DI-2019-483, 1/9 al 1/12, con pesca deportiva solo sábados, domingos y feriados). Su art. 7 dice: \"Excluir de los alcances de la presente al Río de la Plata y la región del Delta del Paraná, bajo jurisdicción de la provincia de Buenos Aires\". La disposición no define los límites de \"la región del Delta del Paraná\": que el Paraná de las Palmas frente a Lima quede dentro no está verificado.",
+        "sources": [
+          { "title": "Disposición DI-2019-483-GDEBA-DAPAYCPMAGP, art. 7", "url": "https://www.maa.gba.gov.ar/pesca1/images/leg_archivos/disp_483_19.pdf" },
+          { "title": "Disposiciones — gba.gob.ar (DI-2019-483 y DISPO-2021-116)", "url": "https://www.gba.gob.ar/desarrollo_agrario/pesca/legislacion/provincial/disposiciones" }
+        ]
+      },
+      {
+        "text": "Tararira en ambientes fluviales (reglamento 2026, pág. 7, y DI-2018-513): 3 piezas por pescador y por día \"en todos los ambientes de aguas interiores (lagunas y fluviales)\"; talla mínima 40 cm. Veda del 1/11 al 31/1: en noviembre y diciembre solo sábados, domingos y feriados \"con devolución obligatoria e inmediata\"; en enero, 3 ejemplares de talla mínima por persona y por día, solo sábados, domingos y feriados.",
+        "sources": [
+          { "title": "Reglamento de pesca deportiva 2026 (PBA), pág. 7", "url": "https://drive.google.com/file/d/1-6HWnpuQjw38iq0VY5R5mSJ5RnkCHgGk/view" },
+          { "title": "Disposición DI-2018-513-GEDEBA-DAPYAMAGP, arts. 1 y 3", "url": "https://www.maa.gba.gov.ar/pesca1/images/leg_archivos/di-2018-513.pdf" },
+          { "title": "Disposiciones — gba.gob.ar", "url": "https://www.gba.gob.ar/desarrollo_agrario/pesca/legislacion/provincial/disposiciones" }
+        ]
+      }
+    ]
+  },
+  "er": {
+    "name": "Entre Ríos",
+    "note": "Orilla e islas de Entre Ríos. Hace falta la licencia de pesca deportiva de Entre Ríos. Las tallas de la normativa de Entre Ríos no están verificadas en la app.",
+    "rules": [
+      {
+        "text": "Ley 11.174, art. 2: \"Prohíbese la pesca del dorado – en todas sus especies – con fines comerciales, su acopio, venta, tenencia y tránsito en todo el territorio de la Provincia de Entre Ríos\". Art. 4: se exceptúa \"a) Cuando la pesca se realice en forma deportiva y con devolución obligatoria\".",
+        "sources": [
+          { "title": "Ley N° 11.174 — Senado de Entre Ríos (ficha y descarga)", "url": "https://www.senadoer.gob.ar/ley/ley-n-11174/" },
+          { "title": "Boletín Oficial de Entre Ríos, 30/12/2024, págs. 4–5", "url": "https://www.senadoer.gob.ar/descargas/55753" }
+        ]
+      },
+      {
+        "text": "RESOL-2026-290-E-GER-DRNYF (julio a septiembre de 2026), art. 5: \"la actividad de pesca deportiva en aguas del río Paraná de jurisdicción provincial se desarrollará bajo el régimen de capturas reglamentadas, debiendo garantizarse la liberación inmediata de los ejemplares capturados, en consonancia con las especies y tamaños permitidos en la normativa provincial\". Art. 6: \"Autorizar el consumo social in-situ de las piezas capturadas y permitidas por la normativa vigente\". Estas resoluciones son trimestrales: la de octubre a diciembre de 2026 no está en el Boletín Oficial al 11/11/2026 (no verificado qué rige ahora).",
+        "sources": [
+          { "title": "Boletín Oficial de Entre Ríos, 6/8/2026, págs. 24–27 (RESOL-2026-290-E-GER-DRNYF)", "url": "https://www.entrerios.gov.ar/boletin/calendario/Boletin/2026/Agosto/06-08-26.pdf" }
+        ]
+      }
+    ],
+    "license": {
+      "url": null,
+      "types": [
+        { "name": "P1 · Licencia anual para residentes de la provincia de Entre Ríos", "duration": "1 año" },
+        { "name": "P2 · Licencia anual para residentes de otras provincias", "duration": "1 año" },
+        { "name": "P3 · Permiso transitorio para residentes de otras provincias", "duration": "4 días" },
+        { "name": "P4 · Permiso para extranjeros", "duration": "5 días" }
+      ],
+      "notes": [
+        "Categorías de pesca deportiva de la RESMI-2026-117-E-GER-MDE (Boletín Oficial del 28/5/2026, pág. 33). Los aranceles cambian seguido: la app no muestra precios.",
+        "No verificamos una página oficial para tramitarla en línea."
+      ],
+      "sources": [
+        { "title": "Boletín Oficial de Entre Ríos, 28/5/2026, pág. 33 (RESMI-2026-117-E-GER-MDE)", "url": "https://www.entrerios.gov.ar/boletin/calendario/Boletin/2026/Mayo/28-05-26.pdf" }
+      ]
+    }
+  }
+}

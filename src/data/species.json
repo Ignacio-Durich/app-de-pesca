@@ -310,5 +310,409 @@
       "license": "CC BY-SA 3.0",
       "page": "https://commons.wikimedia.org/wiki/File:Callorhinchus_callorhynchus.JPG"
     }
+  },
+  {
+    "id": "dorado-ba",
+    "name": "Dorado",
+    "scientific": "Salminus brasiliensis",
+    "category": null,
+    "waters": [
+      "rio"
+    ],
+    "zones": [
+      "ba"
+    ],
+    "season": null,
+    "bait": null,
+    "minSizeCm": 60,
+    "dailyLimit": "2 por día",
+    "release": null,
+    "veda": {
+      "from": "10-01",
+      "to": "01-15",
+      "text": "En veda del 1/10 al 15/1: no se puede pescar"
+    },
+    "notes": "Reglamento 2026, pág. 9 (sección \"Estuario del Río de la Plata\"): \"2 (Dos) En todos los ambientes\", talla 60 cm, veda del 1° de octubre al 15 de enero, \"no permitiéndose la captura de ningún ejemplar durante este período\". La Disposición 17/93 fija lo mismo para la pesca deportiva en la provincia (arts. 2 y 3). El reglamento lo nombra Salminus maxillosus.",
+    "verified": true,
+    "sources": [
+      {
+        "title": "Reglamento de pesca deportiva 2026 (PBA), pág. 9",
+        "url": "https://drive.google.com/file/d/1-6HWnpuQjw38iq0VY5R5mSJ5RnkCHgGk/view"
+      },
+      {
+        "title": "Pesca deportiva — gba.gob.ar",
+        "url": "https://www.gba.gob.ar/desarrollo_agrario/pesca/pesca_deportiva"
+      },
+      {
+        "title": "Disposición 17/93 (Dirección Provincial de Pesca, PBA), arts. 2 y 3",
+        "url": "https://www.maa.gba.gov.ar/pesca1/images/leg_archivos/D17-93.pdf"
+      },
+      {
+        "title": "EBIPES, Informe biológico global 2012-2013 (Dirección de Pesca Continental, magyp.gob.ar), pág. 5",
+        "url": "https://www.magyp.gob.ar/sitio/areas/pesca_continental/informes/proyecto_ebipes/_archivos/000000_Informes%20del%20proyecto%20evaluaci%C3%B3n%20biol%C3%B3gica%20y%20pesquera%20de%20especies%20de%20inter%C3%A9s%20deportivo%20y%20comercial/140303-Informe%20T%C3%A9cnico%20N%C2%B0%2013%20Informe%20Biol%C3%B3gico%20Global%202012-2013.pdf"
+      },
+      {
+        "title": "Crónica Pesca, 22/1/2026: Paraná de las Palmas zona Zárate–Campana (prensa; solo presencia)",
+        "url": "https://www.cronica.com.ar/sociedad/cronica-pesca-el-pique-de-la-semana-noticias-y-detalles-claves-7318.html"
+      }
+    ],
+    "photo": {
+      "src": "/species/dorado.jpg",
+      "caption": "Salminus brasiliensis (ilustración)",
+      "author": "P. Oudart",
+      "license": "Public domain",
+      "page": "https://commons.wikimedia.org/wiki/File:Salminus_brasiliensis.jpg"
+    }
+  },
+  {
+    "id": "dorado-er",
+    "name": "Dorado",
+    "scientific": "Salminus brasiliensis",
+    "category": null,
+    "waters": [
+      "rio"
+    ],
+    "zones": [
+      "er"
+    ],
+    "season": null,
+    "bait": null,
+    "minSizeCm": null,
+    "dailyLimit": "Devolución obligatoria",
+    "release": "Devolución obligatoria (Ley 11.174, art. 4 a): en Entre Ríos el dorado solo se pesca en forma deportiva y con devolución.",
+    "notes": "Ley 11.174, art. 2: \"Prohíbese la pesca del dorado – en todas sus especies – con fines comerciales, su acopio, venta, tenencia y tránsito en todo el territorio de la Provincia de Entre Ríos\".",
+    "verified": true,
+    "sources": [
+      {
+        "title": "Ley N° 11.174 — Senado de Entre Ríos",
+        "url": "https://www.senadoer.gob.ar/ley/ley-n-11174/"
+      },
+      {
+        "title": "Boletín Oficial de Entre Ríos, 30/12/2024, págs. 4–5",
+        "url": "https://www.senadoer.gob.ar/descargas/55753"
+      },
+      {
+        "title": "EBIPES, Informe biológico global 2012-2013 (Dirección de Pesca Continental, magyp.gob.ar), pág. 5",
+        "url": "https://www.magyp.gob.ar/sitio/areas/pesca_continental/informes/proyecto_ebipes/_archivos/000000_Informes%20del%20proyecto%20evaluaci%C3%B3n%20biol%C3%B3gica%20y%20pesquera%20de%20especies%20de%20inter%C3%A9s%20deportivo%20y%20comercial/140303-Informe%20T%C3%A9cnico%20N%C2%B0%2013%20Informe%20Biol%C3%B3gico%20Global%202012-2013.pdf"
+      }
+    ],
+    "photo": {
+      "src": "/species/dorado.jpg",
+      "caption": "Salminus brasiliensis (ilustración)",
+      "author": "P. Oudart",
+      "license": "Public domain",
+      "page": "https://commons.wikimedia.org/wiki/File:Salminus_brasiliensis.jpg"
+    }
+  },
+  {
+    "id": "surubi",
+    "name": "Surubí",
+    "scientific": "Pseudoplatystoma corruscans",
+    "category": null,
+    "waters": [
+      "rio"
+    ],
+    "zones": [
+      "ba",
+      "er"
+    ],
+    "season": null,
+    "bait": null,
+    "minSizeCm": null,
+    "dailyLimit": null,
+    "release": null,
+    "notes": "Surubí pintado según el EBIPES. Buenos Aires: el reglamento 2026 no fija talla, cupo ni veda para esta especie en ríos (págs. 7–9). Entre Ríos: la resolución trimestral de julio a septiembre de 2026 pide liberación inmediata en el río Paraná de jurisdicción provincial, \"en consonancia con las especies y tamaños permitidos en la normativa provincial\"; esas tallas no están verificadas.",
+    "verified": false,
+    "sources": [
+      {
+        "title": "EBIPES, Informe biológico global 2012-2013 (Dirección de Pesca Continental, magyp.gob.ar), pág. 5",
+        "url": "https://www.magyp.gob.ar/sitio/areas/pesca_continental/informes/proyecto_ebipes/_archivos/000000_Informes%20del%20proyecto%20evaluaci%C3%B3n%20biol%C3%B3gica%20y%20pesquera%20de%20especies%20de%20inter%C3%A9s%20deportivo%20y%20comercial/140303-Informe%20T%C3%A9cnico%20N%C2%B0%2013%20Informe%20Biol%C3%B3gico%20Global%202012-2013.pdf"
+      },
+      {
+        "title": "Reglamento de pesca deportiva 2026 (PBA), pág. 7–9",
+        "url": "https://drive.google.com/file/d/1-6HWnpuQjw38iq0VY5R5mSJ5RnkCHgGk/view"
+      },
+      {
+        "title": "Boletín Oficial de Entre Ríos, 6/8/2026, págs. 26–27 (RESOL-2026-290-E-GER-DRNYF, art. 5)",
+        "url": "https://www.entrerios.gov.ar/boletin/calendario/Boletin/2026/Agosto/06-08-26.pdf"
+      },
+      {
+        "title": "FAO, Allocation of fishery resources, Argentina (pesca deportiva en la cuenca del Plata)",
+        "url": "https://www.fao.org/4/ac743e/AC743E25.htm"
+      }
+    ],
+    "photo": {
+      "src": "/species/surubi.jpg",
+      "caption": "Pseudoplatystoma corruscans",
+      "author": "Martín Acosta Albarracín",
+      "license": "CC BY 4.0",
+      "page": "https://commons.wikimedia.org/wiki/File:Surub%C3%AD_(Pseudoplatystoma_corruscans),_It%C3%A1_Ibat%C3%A9.jpg"
+    }
+  },
+  {
+    "id": "boga",
+    "name": "Boga",
+    "scientific": "Leporinus obtusidens",
+    "category": null,
+    "waters": [
+      "rio"
+    ],
+    "zones": [
+      "ba",
+      "er"
+    ],
+    "season": null,
+    "bait": null,
+    "minSizeCm": null,
+    "dailyLimit": null,
+    "release": null,
+    "notes": "Buenos Aires: el reglamento 2026 no fija talla, cupo ni veda para esta especie en ríos (págs. 7–9). Entre Ríos: la resolución trimestral de julio a septiembre de 2026 pide liberación inmediata en el río Paraná de jurisdicción provincial, \"en consonancia con las especies y tamaños permitidos en la normativa provincial\"; esas tallas no están verificadas.",
+    "verified": false,
+    "sources": [
+      {
+        "title": "Reglamento de pesca deportiva 2026 (PBA), pág. 14",
+        "url": "https://drive.google.com/file/d/1-6HWnpuQjw38iq0VY5R5mSJ5RnkCHgGk/view"
+      },
+      {
+        "title": "EBIPES, Informe biológico global 2012-2013 (Dirección de Pesca Continental, magyp.gob.ar), pág. 5",
+        "url": "https://www.magyp.gob.ar/sitio/areas/pesca_continental/informes/proyecto_ebipes/_archivos/000000_Informes%20del%20proyecto%20evaluaci%C3%B3n%20biol%C3%B3gica%20y%20pesquera%20de%20especies%20de%20inter%C3%A9s%20deportivo%20y%20comercial/140303-Informe%20T%C3%A9cnico%20N%C2%B0%2013%20Informe%20Biol%C3%B3gico%20Global%202012-2013.pdf"
+      },
+      {
+        "title": "Boletín Oficial de Entre Ríos, 6/8/2026, págs. 26–27 (RESOL-2026-290-E-GER-DRNYF, art. 5)",
+        "url": "https://www.entrerios.gov.ar/boletin/calendario/Boletin/2026/Agosto/06-08-26.pdf"
+      },
+      {
+        "title": "Crónica Pesca, 22/1/2026: Paraná de las Palmas zona Zárate–Campana (prensa; solo presencia)",
+        "url": "https://www.cronica.com.ar/sociedad/cronica-pesca-el-pique-de-la-semana-noticias-y-detalles-claves-7318.html"
+      }
+    ],
+    "photo": {
+      "src": "/species/boga.jpg",
+      "caption": "Megaleporinus obtusidens",
+      "author": "João D'Andretta",
+      "license": "CC BY 4.0",
+      "page": "https://commons.wikimedia.org/wiki/File:Megaleporinus_obtusidens_107498091.jpg"
+    }
+  },
+  {
+    "id": "pati",
+    "name": "Patí",
+    "scientific": "Luciopimelodus pati",
+    "category": null,
+    "waters": [
+      "rio"
+    ],
+    "zones": [
+      "ba",
+      "er"
+    ],
+    "season": null,
+    "bait": null,
+    "minSizeCm": null,
+    "dailyLimit": null,
+    "release": null,
+    "notes": "La lámina \"Peces de río\" del reglamento 2026 (pág. 14) muestra Luciopimelodus pati con el rótulo \"Boga\". Buenos Aires: el reglamento 2026 no fija talla, cupo ni veda para esta especie en ríos (págs. 7–9). Entre Ríos: la resolución trimestral de julio a septiembre de 2026 pide liberación inmediata en el río Paraná de jurisdicción provincial, \"en consonancia con las especies y tamaños permitidos en la normativa provincial\"; esas tallas no están verificadas.",
+    "verified": false,
+    "sources": [
+      {
+        "title": "EBIPES, Informe biológico global 2012-2013 (Dirección de Pesca Continental, magyp.gob.ar), pág. 6",
+        "url": "https://www.magyp.gob.ar/sitio/areas/pesca_continental/informes/proyecto_ebipes/_archivos/000000_Informes%20del%20proyecto%20evaluaci%C3%B3n%20biol%C3%B3gica%20y%20pesquera%20de%20especies%20de%20inter%C3%A9s%20deportivo%20y%20comercial/140303-Informe%20T%C3%A9cnico%20N%C2%B0%2013%20Informe%20Biol%C3%B3gico%20Global%202012-2013.pdf"
+      },
+      {
+        "title": "Reglamento de pesca deportiva 2026 (PBA), pág. 14",
+        "url": "https://drive.google.com/file/d/1-6HWnpuQjw38iq0VY5R5mSJ5RnkCHgGk/view"
+      },
+      {
+        "title": "Boletín Oficial de Entre Ríos, 6/8/2026, págs. 26–27 (RESOL-2026-290-E-GER-DRNYF, art. 5)",
+        "url": "https://www.entrerios.gov.ar/boletin/calendario/Boletin/2026/Agosto/06-08-26.pdf"
+      },
+      {
+        "title": "FAO, Allocation of fishery resources, Argentina (pesca deportiva en la cuenca del Plata)",
+        "url": "https://www.fao.org/4/ac743e/AC743E25.htm"
+      }
+    ],
+    "photo": {
+      "src": "/species/pati.jpg",
+      "caption": "Luciopimelodus pati (ilustración)",
+      "author": "Paul Louis Oudart",
+      "license": "Public domain",
+      "page": "https://commons.wikimedia.org/wiki/File:Luciopimelodus_pati_Orbigny.jpg"
+    }
+  },
+  {
+    "id": "armado",
+    "name": "Armado",
+    "scientific": "Pterodoras granulosus",
+    "category": null,
+    "waters": [
+      "rio"
+    ],
+    "zones": [
+      "ba",
+      "er"
+    ],
+    "season": null,
+    "bait": null,
+    "minSizeCm": null,
+    "dailyLimit": null,
+    "release": null,
+    "notes": "Armado común según el EBIPES (pág. 11); la lámina del reglamento 2026 (pág. 14) rotula \"Armado\" a Oxydoras kneri. Buenos Aires: el reglamento 2026 no fija talla, cupo ni veda para esta especie en ríos (págs. 7–9). Entre Ríos: la resolución trimestral de julio a septiembre de 2026 pide liberación inmediata en el río Paraná de jurisdicción provincial, \"en consonancia con las especies y tamaños permitidos en la normativa provincial\"; esas tallas no están verificadas.",
+    "verified": false,
+    "sources": [
+      {
+        "title": "EBIPES, Informe biológico global 2012-2013 (Dirección de Pesca Continental, magyp.gob.ar), pág. 11",
+        "url": "https://www.magyp.gob.ar/sitio/areas/pesca_continental/informes/proyecto_ebipes/_archivos/000000_Informes%20del%20proyecto%20evaluaci%C3%B3n%20biol%C3%B3gica%20y%20pesquera%20de%20especies%20de%20inter%C3%A9s%20deportivo%20y%20comercial/140303-Informe%20T%C3%A9cnico%20N%C2%B0%2013%20Informe%20Biol%C3%B3gico%20Global%202012-2013.pdf"
+      },
+      {
+        "title": "Reglamento de pesca deportiva 2026 (PBA), pág. 14",
+        "url": "https://drive.google.com/file/d/1-6HWnpuQjw38iq0VY5R5mSJ5RnkCHgGk/view"
+      },
+      {
+        "title": "Boletín Oficial de Entre Ríos, 6/8/2026, págs. 26–27 (RESOL-2026-290-E-GER-DRNYF, art. 5)",
+        "url": "https://www.entrerios.gov.ar/boletin/calendario/Boletin/2026/Agosto/06-08-26.pdf"
+      }
+    ],
+    "photo": {
+      "src": "/species/armado.jpg",
+      "caption": "Pterodoras granulosus (ilustración)",
+      "author": "Paul Louis Oudart",
+      "license": "Public domain",
+      "page": "https://commons.wikimedia.org/wiki/File:Pterodoras_granulosus.jpg"
+    }
+  },
+  {
+    "id": "bagre-amarillo",
+    "name": "Bagre amarillo",
+    "scientific": "Pimelodus maculatus",
+    "category": null,
+    "waters": [
+      "rio"
+    ],
+    "zones": [
+      "ba",
+      "er"
+    ],
+    "season": null,
+    "bait": null,
+    "minSizeCm": null,
+    "dailyLimit": null,
+    "release": null,
+    "notes": "Buenos Aires: el reglamento 2026 no fija talla, cupo ni veda para esta especie en ríos (págs. 7–9). Entre Ríos: la resolución trimestral de julio a septiembre de 2026 pide liberación inmediata en el río Paraná de jurisdicción provincial, \"en consonancia con las especies y tamaños permitidos en la normativa provincial\"; esas tallas no están verificadas.",
+    "verified": false,
+    "sources": [
+      {
+        "title": "SIB, Parques Nacionales: Pimelodus maculatus",
+        "url": "https://sib.gob.ar/especies/pimelodus-maculatus"
+      },
+      {
+        "title": "Reglamento de pesca deportiva 2026 (PBA), pág. 7–9",
+        "url": "https://drive.google.com/file/d/1-6HWnpuQjw38iq0VY5R5mSJ5RnkCHgGk/view"
+      },
+      {
+        "title": "Boletín Oficial de Entre Ríos, 6/8/2026, págs. 26–27 (RESOL-2026-290-E-GER-DRNYF, art. 5)",
+        "url": "https://www.entrerios.gov.ar/boletin/calendario/Boletin/2026/Agosto/06-08-26.pdf"
+      },
+      {
+        "title": "Crónica Pesca, 22/1/2026: Paraná de las Palmas zona Zárate–Campana (prensa; solo presencia)",
+        "url": "https://www.cronica.com.ar/sociedad/cronica-pesca-el-pique-de-la-semana-noticias-y-detalles-claves-7318.html"
+      }
+    ],
+    "photo": {
+      "src": "/species/bagre-amarillo.jpg",
+      "caption": "Pimelodus maculatus",
+      "author": "Romi Galeota Lencina",
+      "license": "CC BY 4.0",
+      "page": "https://commons.wikimedia.org/wiki/File:Pimelodus_maculatus_344323174.jpg"
+    }
+  },
+  {
+    "id": "bagre-blanco",
+    "name": "Bagre blanco",
+    "scientific": "Pimelodus albicans",
+    "category": null,
+    "waters": [
+      "rio"
+    ],
+    "zones": [
+      "ba",
+      "er"
+    ],
+    "season": null,
+    "bait": null,
+    "minSizeCm": null,
+    "dailyLimit": null,
+    "release": null,
+    "notes": "Buenos Aires: el reglamento 2026 no fija talla, cupo ni veda para esta especie en ríos (págs. 7–9). Entre Ríos: la resolución trimestral de julio a septiembre de 2026 pide liberación inmediata en el río Paraná de jurisdicción provincial, \"en consonancia con las especies y tamaños permitidos en la normativa provincial\"; esas tallas no están verificadas.",
+    "verified": false,
+    "sources": [
+      {
+        "title": "SIB, Parques Nacionales: Pimelodus albicans",
+        "url": "https://sib.gob.ar/especies/pimelodus-albicans"
+      },
+      {
+        "title": "Reglamento de pesca deportiva 2026 (PBA), pág. 7–9",
+        "url": "https://drive.google.com/file/d/1-6HWnpuQjw38iq0VY5R5mSJ5RnkCHgGk/view"
+      },
+      {
+        "title": "Boletín Oficial de Entre Ríos, 6/8/2026, págs. 26–27 (RESOL-2026-290-E-GER-DRNYF, art. 5)",
+        "url": "https://www.entrerios.gov.ar/boletin/calendario/Boletin/2026/Agosto/06-08-26.pdf"
+      },
+      {
+        "title": "Crónica Pesca, 22/1/2026: Paraná de las Palmas zona Zárate–Campana (prensa; solo presencia)",
+        "url": "https://www.cronica.com.ar/sociedad/cronica-pesca-el-pique-de-la-semana-noticias-y-detalles-claves-7318.html"
+      }
+    ],
+    "photo": {
+      "src": "/species/bagre-blanco.jpg",
+      "caption": "Pimelodus albicans",
+      "author": "Aaron Soderstrom",
+      "license": "CC BY-SA 4.0",
+      "page": "https://commons.wikimedia.org/wiki/File:Pimelodus_albicans.png"
+    }
+  },
+  {
+    "id": "sabalo",
+    "name": "Sábalo",
+    "scientific": "Prochilodus lineatus",
+    "category": null,
+    "waters": [
+      "rio"
+    ],
+    "zones": [
+      "ba",
+      "er"
+    ],
+    "season": null,
+    "bait": null,
+    "minSizeCm": null,
+    "dailyLimit": null,
+    "release": null,
+    "notes": "Reglamento 2026, pág. 8: la Resolución 190/2019 \"deja sin efecto la medida de prohibición de la especie Sábalo (Prochilodus lineatus) en aguas del Río de La Plata\". Buenos Aires: el reglamento 2026 no fija talla, cupo ni veda para esta especie en ríos (págs. 7–9). Entre Ríos: la resolución trimestral de julio a septiembre de 2026 pide liberación inmediata en el río Paraná de jurisdicción provincial, \"en consonancia con las especies y tamaños permitidos en la normativa provincial\"; esas tallas no están verificadas.",
+    "verified": false,
+    "sources": [
+      {
+        "title": "Reglamento de pesca deportiva 2026 (PBA), pág. 8",
+        "url": "https://drive.google.com/file/d/1-6HWnpuQjw38iq0VY5R5mSJ5RnkCHgGk/view"
+      },
+      {
+        "title": "EBIPES, Informe biológico global 2012-2013 (Dirección de Pesca Continental, magyp.gob.ar), pág. 4",
+        "url": "https://www.magyp.gob.ar/sitio/areas/pesca_continental/informes/proyecto_ebipes/_archivos/000000_Informes%20del%20proyecto%20evaluaci%C3%B3n%20biol%C3%B3gica%20y%20pesquera%20de%20especies%20de%20inter%C3%A9s%20deportivo%20y%20comercial/140303-Informe%20T%C3%A9cnico%20N%C2%B0%2013%20Informe%20Biol%C3%B3gico%20Global%202012-2013.pdf"
+      },
+      {
+        "title": "Boletín Oficial de Entre Ríos, 6/8/2026, págs. 26–27 (RESOL-2026-290-E-GER-DRNYF, art. 5)",
+        "url": "https://www.entrerios.gov.ar/boletin/calendario/Boletin/2026/Agosto/06-08-26.pdf"
+      },
+      {
+        "title": "FAO, Allocation of fishery resources, Argentina (pesca deportiva en la cuenca del Plata)",
+        "url": "https://www.fao.org/4/ac743e/AC743E25.htm"
+      }
+    ],
+    "photo": {
+      "src": "/species/sabalo.jpg",
+      "caption": "Prochilodus lineatus",
+      "author": "dariocrosa",
+      "license": "CC0",
+      "page": "https://commons.wikimedia.org/wiki/File:Prochilodus_lineatus_351939209_(cropped).jpg"
+    }
   }
 ]

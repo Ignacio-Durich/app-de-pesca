@@ -48,6 +48,7 @@ export const MAX_WINDOWS = 3
 // 250 km en mar (el grupo maneja hasta 4 h por día); 100 km en río (Lima está a ~100 km de Zárate).
 export const ZONE_RADIUS_KM = { mar: 250, rio: 100 }
 export const STATION_MAX_KM = 60 // [diseño] spec §8.1
+export const ZONE_EDGE_KM = 1 // [diseño] spec §8.4: a menos de esto del límite entre provincias se muestran las dos
 
 // [diseño] spec §8.2: pesos del puntaje de río (la presión pesa; no hay marea astronómica).
 export const WEIGHTS_RIO = { tide: 0.5, wind: 0.3, pressure: 0.1, moon: 0.05, weather: 0.05 }

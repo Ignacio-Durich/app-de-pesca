@@ -1,4 +1,18 @@
 [
   { "label": "Prefectura Naval — Emergencias náuticas", "value": "106", "kind": "tel" },
-  { "label": "VHF canal 16", "value": "156,800 MHz", "kind": "radio" }
+  { "label": "VHF canal 16", "value": "156,800 MHz", "kind": "radio" },
+  {
+    "label": "Prefectura Zárate (dependencia; para emergencias, el 106 o el canal 16)",
+    "value": "03487-422733 / 423110",
+    "kind": "tel",
+    "water": "rio",
+    "source": "https://www.argentina.gob.ar/prefecturanaval/comision-evaluadora-habilitaciones-nauticas-deportivas"
+  },
+  {
+    "label": "VTS Zárate (control de tráfico de Prefectura en el Paraná de las Palmas, km 57,6 a 179,2)",
+    "value": "VHF canal 72 (156,625 MHz)",
+    "kind": "radio",
+    "water": "rio",
+    "source": "https://www.argentina.gob.ar/prefecturanaval/avisos/zarate_"
+  }
 ]

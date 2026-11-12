@@ -1,9 +1,11 @@
 import { useEffect, useState } from 'preact/hooks'
 import { toDegMin } from '../map/nav.js'
-import contacts from '../data/emergency.json'
+import all from '../data/emergency.json'
 
 // Sin red: solo GPS del teléfono y datos locales.
-export function Emergency() {
+export function Emergency({ trip }) {
+  // Las generales (sin `water`) siempre; las de río o mar, solo en su tipo de viaje.
+  const contacts = all.filter((c) => !c.water || c.water === (trip?.water ?? 'mar'))
   const [pos, setPos] = useState(null)
   const [err, setErr] = useState(null) // 'denied' | 'unavailable' | 'waiting'
 
@@ -47,7 +49,10 @@ export function Emergency() {
       )}
       <div class="card">
         {contacts.map((c) => (
-          <p key={c.kind}><strong>{c.label}:</strong> {c.value}{c.kind === 'tel' && ' (gratuito)'}</p>
+          <p key={c.label}>
+            <strong>{c.label}:</strong> {c.value}{c === tel && ' (gratuito)'}
+            {c.source && <> · <a href={c.source} target="_blank" rel="noopener">fuente</a></>}
+          </p>
         ))}
         {radio && <p class="muted">Por radio, llamá por el {radio.label}.</p>}
       </div>

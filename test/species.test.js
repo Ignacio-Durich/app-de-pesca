@@ -2,11 +2,15 @@ import { describe, expect, test } from 'vitest'
 import species from '../src/data/species.json'
 import { license, rules } from '../src/data/regulation.json'
 
-const official = (u) => {
+import rio from '../src/data/regulation-rio.json'
+
+// Dominios oficiales por provincia (spec §2.7).
+const OFFICIAL = { ba: ['gba.gob.ar', 'gba.gov.ar'], er: ['entrerios.gov.ar', 'senadoer.gob.ar'] }
+const official = (u, zone = 'ba') => {
   const h = new URL(u).hostname
-  return h === 'gba.gob.ar' || h.endsWith('.gba.gob.ar')
+  return OFFICIAL[zone].some((d) => h === d || h.endsWith(`.${d}`))
 }
-const hasOfficial = (e) => e.sources.some((s) => official(s.url))
+const hasOfficial = (e) => (e.zones ?? ['ba']).every((z) => e.sources.some((s) => official(s.url, z)))
 const by = (id) => species.find((e) => e.id === id)
 
 describe('species.json', () => {
@@ -15,10 +19,13 @@ describe('species.json', () => {
     for (const e of species) {
       expect(e.id).toBeTruthy()
       expect(e.name).toBeTruthy()
-      expect(e.waters).toEqual(['mar'])
+      expect([['mar'], ['rio']]).toContainEqual(e.waters)
+      if (e.waters[0] === 'rio') for (const z of e.zones) expect(['ba', 'er']).toContain(z)
     }
     expect(new Set(species.map((e) => e.id)).size).toBe(species.length)
-    expect(new Set(species.map((e) => e.name)).size).toBe(species.length)
+    // El mismo nombre puede repetirse solo en zonas distintas (dorado de Buenos Aires y de Entre Ríos).
+    const keys = species.flatMap((e) => (e.zones ?? ['mar']).map((z) => `${e.name}|${z}`))
+    expect(new Set(keys).size).toBe(keys.length)
   })
 
   test('verified:true implica al menos una fuente con url https', () => {
@@ -28,7 +35,7 @@ describe('species.json', () => {
     }
   })
 
-  test('talla, cupo o devolución solo con fuente oficial (gba.gob.ar / normas.gba.gob.ar)', () => {
+  test('talla, cupo o devolución solo con fuente oficial de cada provincia', () => {
     for (const e of species) {
       if (e.minSizeCm != null || e.release != null || e.dailyLimit != null) {
         expect(hasOfficial(e), e.id).toBe(true)
@@ -52,6 +59,33 @@ describe('species.json', () => {
     expect(by('pez-elefante').dailyLimit).toMatch(/2/)
     expect(by('lenguado').minSizeCm).toBeNull()
     expect(by('pejerrey').notes).toContain('no podrá utilizarse ninguna clase de carnada')
+  })
+
+  test('río: dorado según la orilla; lo demás sin verificar queda null', () => {
+    expect(by('dorado-ba')).toMatchObject({ zones: ['ba'], minSizeCm: 60, dailyLimit: '2 por día', veda: { from: '10-01', to: '01-15' } })
+    expect(by('dorado-er')).toMatchObject({ zones: ['er'], minSizeCm: null })
+    expect(by('dorado-er').release).toMatch(/^Devolución obligatoria/)
+    for (const id of ['surubi', 'boga', 'pati', 'armado', 'bagre-amarillo', 'bagre-blanco', 'sabalo']) {
+      expect(by(id), id).toMatchObject({ waters: ['rio'], zones: ['ba', 'er'], minSizeCm: null, dailyLimit: null, release: null })
+    }
+  })
+})
+
+describe('regulation-rio.json', () => {
+  test('cada regla de cada orilla tiene fuente oficial de su provincia', () => {
+    expect(Object.keys(rio).sort()).toEqual(['ba', 'er'])
+    for (const [zone, z] of Object.entries(rio)) {
+      expect(z.note).toBeTruthy()
+      for (const r of z.rules) expect(r.sources.some((s) => official(s.url, zone)), r.text).toBe(true)
+    }
+    expect(rio.er.license.url).toBeNull() // no hay página oficial verificada
+    expect(rio.er.license.sources.some((s) => official(s.url, 'er'))).toBe(true)
+  })
+
+  test('la veda de pejerrey se cita con su exclusión del Delta, sin resolverla', () => {
+    const txt = rio.ba.rules.map((r) => r.text).join(' ')
+    expect(txt).toContain('la región del Delta del Paraná')
+    expect(txt).toContain('no está verificado')
   })
 })
 
