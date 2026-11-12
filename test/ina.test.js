@@ -22,20 +22,40 @@ describe('parseLevels', () => {
   it('converts UTC to trip local time', () => {
     expect(parseLevels(a, null).points[0].t).toBe('2026-11-11T18:00')
   })
-  it('measured beats main', () => {
-    expect(parseLevels(a, pr).points[0]).toEqual({ t: '2026-11-11T18:00', h: 0.78, lo: 0.5, hi: 1.4, measured: true })
+  it('measured beats main; the band shifts by the offset', () => {
+    const r = parseLevels(a, pr)
+    expect(r.offsetM).toBeCloseTo(-0.12, 6)
+    expect(r.points[0]).toMatchObject({ t: '2026-11-11T18:00', h: 0.78, measured: true })
+    expect(r.points[0].lo).toBeCloseTo(0.38, 6)
+    expect(r.points[0].hi).toBeCloseTo(1.28, 6)
   })
-  it('main/p01/p99 per hour', () => {
+  it('main/p01/p99 per hour (no overlap -> offset 0)', () => {
     expect(parseLevels(null, pr)).toEqual({
       forecastDate: 'X',
+      offsetM: 0,
       points: [{ t: '2026-11-11T18:00', h: 0.9, lo: 0.5, hi: 1.4, measured: false }],
     })
+  })
+  it('no overlap: measured and forecast at different hours -> offset 0', () => {
+    const later = { forecast_date: 'X', series: [{ pronosticos: [{ ...p('main', 0.9), timestart: '2026-11-11T22:00:00.000Z' }] }] }
+    const r = parseLevels(a, later)
+    expect(r.offsetM).toBe(0)
+    expect(r.points.map((x) => x.h)).toEqual([0.78, 0.9])
   })
   it('real fixtures: sorted, measured and forecast', () => {
     const { points } = parseLevels(obs, prono)
     expect(points.some((x) => x.measured)).toBe(true)
     expect(points.some((x) => !x.measured)).toBe(true)
     expect(points.every((x, i) => i === 0 || points[i - 1].t < x.t)).toBe(true)
+  })
+  // R9: medido 0,78 m vs main 1,24 m el 11/11 18:00 -> la curva corrida no salta al empalmar.
+  it('real fixtures: offset at the last shared hour, no jump at the seam', () => {
+    const { points, offsetM } = parseLevels(obs, prono)
+    const i = points.findLastIndex((x) => x.measured)
+    expect(points[i].t).toBe('2026-11-11T18:00')
+    expect(offsetM).toBeCloseTo(0.78 - 1.24, 6)
+    expect(points[i + 1].measured).toBe(false)
+    expect(Math.abs(points[i + 1].h - points[i].h)).toBeLessThan(0.1)
   })
 })
 
@@ -55,6 +75,11 @@ describe('fetchLevels', () => {
     expect(r.stationId).toBe('zarate')
     expect(r.points.length).toBeGreaterThan(0)
     expect(r.points.every((x) => x.measured)).toBe(true)
+    expect(r.offsetM).toBe(0)
+  })
+  it('expone offsetM', async () => {
+    const r = await fetchLevels(z, { fetchImpl: f(ok(obs), ok(prono)) })
+    expect(r.offsetM).toBeCloseTo(-0.46, 6)
   })
   it('si fallan los dos rechaza', async () => {
     await expect(fetchLevels(z, { fetchImpl: f(bad, bad) })).rejects.toThrow()

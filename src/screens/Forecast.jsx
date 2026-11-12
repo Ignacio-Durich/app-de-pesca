@@ -7,7 +7,7 @@ import { findWindows } from '../score/windows.js'
 import { trendCmPerDay } from '../score/river.js'
 import stations from '../data/stations.json'
 import { moonDay } from '../score/moon.js'
-import { NOGO_WIND_KMH, WAVE_NOGO_M, WINDOW_MIN } from '../score/config.js'
+import { NOGO_WIND_KMH, WAVE_NOGO_M, WINDOW_MIN, STATION_MAX_KM } from '../score/config.js'
 import {
   tripDays, nowLocal, pickDay, dayLabel, countdown, slotNow, noGoRanges, tideReaches, phaseLabel, hhmm, dec, heroWindows,
   readMode, saveMode, riverLine, waterTempEstimate,
@@ -140,7 +140,10 @@ function DayView({ trip, tripId, forecast: f, now, catches, station }) {
 
       {showHero
         ? <Hero windows={windows} slots={slots} isToday={day === today} nowIso={nowIso} line={line} />
-        : <section class="card"><p>{river ? 'El pronóstico de altura todavía no llega a esta fecha' : 'El pronóstico de marea todavía no llega a esta fecha.'}</p></section>}
+        : <section class="card"><p>{river ? 'El pronóstico de altura todavía no llega a esta fecha.' : 'El pronóstico de marea todavía no llega a esta fecha.'}</p></section>}
+      {river && !f.level && !f.levelError && (
+        <p class="muted small">No hay una estación del INA con pronóstico a menos de {STATION_MAX_KM} km: el puntaje va sin altura del río.</p>
+      )}
 
       {noGo.length > 0 && (
         <div class="banner" role="alert">

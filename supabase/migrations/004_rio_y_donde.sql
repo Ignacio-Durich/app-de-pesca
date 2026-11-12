@@ -38,7 +38,7 @@ as $$
     and 2 * 6371 * asin(sqrt(least(1.0,
           power(sin(radians(c.lat - p_lat) / 2), 2)
           + cos(radians(p_lat)) * cos(radians(c.lat)) * power(sin(radians(c.lon - p_lon) / 2), 2)
-        ))) <= p_km
+        ))) <= least(p_km, 250) -- tope: limita el scraping masivo; 250 = radio de la zona de mar
   order by c.caught_at desc
   limit 2000
 $$;

@@ -73,7 +73,7 @@ export function MapScreen({ trip, me, tripId }) {
   const sel = spots.find((s) => s.id === selId)
   // "Hoy: N/10" con el pronóstico guardado (sin él, nada). Solo hay puntaje si el modo deja entrar al spot.
   const [forecast, setForecast] = useState(null)
-  const groupCatches = useGroupCatches(trip)
+  const groupCatches = useGroupCatches(trip, tripId)
   useEffect(() => { cachedForecast(trip).then((r) => setForecast(r.forecast ?? null), () => {}) }, [trip.lat, trip.lon])
   const ranked = useMemo(
     () => (forecast ? rankForTrip(trip, forecast, spotRows, groupCatches, readMode(), nowTrip().date) : null),

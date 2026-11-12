@@ -347,6 +347,7 @@ Lo verificado el 11/11 está en §9.1.
   - Las estaciones con pronóstico viven en `src/data/stations.json`, con su id, sus series, coordenadas y niveles. Hoy hay una sola: **Zárate**, estación 5907, con la serie medida 29437 y el pronóstico 29534 del calibrado 440.
   - Si no hay ninguna a menos de 60 km [diseño] del lugar, el viaje de río queda sin altura y con aviso. En ese caso, el puntaje de "cuándo" se arma solo con viento, presión, luna y clima.
   - La corrida del pronóstico trae también los últimos ~6 días simulados, hora por hora. Para cada hora se usa la altura medida si existe, y si no, el valor `main` del pronóstico.
+  - **Empalme (agregado el 12/11) [diseño]:** el pronóstico (`main`, `p01` y `p99`) se corre lo que da medido − `main` en la última hora que tiene los dos (sin hora en común, no se corre). Así la curva no salta en "ahora"; el corrimiento queda en `level.offsetM`. Ver §9.1.
 - **Pantalla Pronóstico en río:** en vez de la curva de marea se ve la curva de altura (medida más pronóstico, con su banda) y las líneas de alerta y aguas bajas.
   - Se marcan los máximos y mínimos de la oscilación diaria.
   - **Tendencia de 3 días:** "creciendo", "estable" o "bajando", con los cm por día.
@@ -572,3 +573,4 @@ Los pesqueros que solo tienen fuente externa y ninguna captura dicen "sin captur
 | Fotos de las especies de río | Wikimedia Commons (autor y licencia de cada archivo en `species.json`) | ✓ CC BY, CC BY-SA, CC0 o dominio público |
 | Prefectura Zárate: 03487-422733 / 423110, Apolo XI s/n | [argentina.gob.ar, PNA](https://www.argentina.gob.ar/prefecturanaval/comision-evaluadora-habilitaciones-nauticas-deportivas) | ✓ |
 | VTS Zárate: VHF canal 72 (156,625 MHz) en el Paraná de las Palmas, km 57,6 a 179,2 | [argentina.gob.ar, PNA, Zárate](https://www.argentina.gob.ar/prefecturanaval/avisos/zarate_) | ✓ |
+| Medido vs. pronóstico de Zárate en la corrida del 11/11: 0,78 m medido (serie 29437) el 11/11 a las 18:00 y 1,26 m de `main` (serie 29534) a las 19:00; `main` a las 18:00, 1,24 m (−0,46 m). En las 165 horas con los dos, 71 medidas caen fuera de la banda `p01`–`p99` | Fixtures reales del INA (`test/fixtures/ina-zarate-*.json`), revisado el 12/11/2026 | ✓ por eso el empalme de §8.1 |

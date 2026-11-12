@@ -174,6 +174,7 @@ export async function prepareTrip(trip, opts = {}) {
   const f = await withTimeout(getForecast(trip, { now: now(), fetchImpl }), STEP_TIMEOUT_MS).catch((e) => ({ error: e.message }))
   if (f.forecast) s.forecastAt = f.forecast.fetchedAt
   if (f.error || !f.forecast) s.missing.push('Pronóstico: sin señal o se cortó')
+  if (trip.water === 'rio' && f.forecast?.levelError) s.missing.push('Altura del río: no se pudo bajar')
   await save()
 
   // 2. Mapa base de la región (R20: sin VITE_MAP_BASE_URL se saltea con aviso).

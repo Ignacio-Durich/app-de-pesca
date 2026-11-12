@@ -95,8 +95,8 @@ const getJson = async (fetchImpl, url) => {
 export function withLevels(forecast, levels) {
   const h = new Map(levels.points.map((p) => [p.t, p.h]))
   const hours = forecast.hours.map((x) => ({ ...x, sea: h.get(x.t) ?? null }))
-  const { source, stationId, forecastDate, points } = levels
-  return { ...forecast, hours, level: { source, stationId, forecastDate, points }, lastTideT: hours.findLast((x) => x.sea != null)?.t ?? null }
+  const { source, stationId, forecastDate, offsetM, points } = levels
+  return { ...forecast, hours, level: { source, stationId, forecastDate, offsetM, points }, lastTideT: hours.findLast((x) => x.sea != null)?.t ?? null }
 }
 
 export async function fetchForecast(lat, lon, fetchImpl = fetch, { water = 'mar', station = null } = {}) {

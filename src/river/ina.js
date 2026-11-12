@@ -36,11 +36,16 @@ export function parseLevels(obsJson, pronoJson) {
     const k = { main: 'main', p01: 'lo', p99: 'hi' }[r.qualifier]
     if (k && r.valor != null) at(local(r.timestart))[k] = r.valor
   }
-  const points = [...byT.values()]
-    .map(({ t, main, lo, hi, meas }) => ({ t, h: meas ?? main, lo, hi, measured: meas != null }))
+  const rows = [...byT.values()].sort((a, b) => (a.t < b.t ? -1 : 1))
+  // [diseño] spec §8.1/§9.1 (12/11): el pronóstico se corre (main, p01, p99) lo que da medido − main en la
+  // última hora con los dos, para que la curva no salte al empalmar. Sin hora en común, 0.
+  const seam = rows.findLast((r) => r.meas != null && r.main != null)
+  const offsetM = seam ? seam.meas - seam.main : 0
+  const sh = (v) => (v == null ? null : v + offsetM)
+  const points = rows
+    .map(({ t, main, lo, hi, meas }) => ({ t, h: meas ?? sh(main), lo: sh(lo), hi: sh(hi), measured: meas != null }))
     .filter((p) => p.h != null)
-    .sort((a, b) => (a.t < b.t ? -1 : 1))
-  return { forecastDate: pronoJson?.forecast_date ?? null, points }
+  return { forecastDate: pronoJson?.forecast_date ?? null, offsetM, points }
 }
 
 export async function fetchLevels(station, { fetchImpl = fetch, now = new Date() } = {}) {
@@ -52,6 +57,6 @@ export async function fetchLevels(station, { fetchImpl = fetch, now = new Date()
   }
   const [o, p] = await Promise.allSettled([get(u.obs), get(u.prono)])
   if (o.status === 'rejected' && p.status === 'rejected') throw o.reason
-  const { forecastDate, points } = parseLevels(o.value, p.value)
-  return { source: `ina:${station.obsSeries}`, stationId: station.id, forecastDate, points }
+  const { forecastDate, offsetM, points } = parseLevels(o.value, p.value)
+  return { source: `ina:${station.obsSeries}`, stationId: station.id, forecastDate, offsetM, points }
 }

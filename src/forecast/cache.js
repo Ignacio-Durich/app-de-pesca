@@ -1,4 +1,4 @@
-import { fetchForecast } from './fetch.js'
+import { fetchForecast, withLevels } from './fetch.js'
 import { nearestStation } from '../river/ina.js'
 import { localGet, localSet } from '../lib/local.js'
 
@@ -25,10 +25,12 @@ export async function getForecast(trip, { now = Date.now(), fetchImpl = fetch, f
   const local = await cachedForecast(trip, now)
   if (!force && local.forecast && local.ageHours < REFRESH_HOURS) return local
   try {
-    const forecast = await fetchForecast(
+    let forecast = await fetchForecast(
       trip.lat, trip.lon, fetchImpl,
       trip.water === 'rio' ? { water: 'rio', station: nearestStation(trip.lat, trip.lon) } : undefined,
     )
+    // Río con el INA caído: no se pisan las alturas guardadas; levelError queda para el aviso.
+    if (forecast.levelError && local.forecast?.level) forecast = withLevels(forecast, local.forecast.level)
     await localSet(cacheKey(trip), forecast)
     return { forecast, ageHours: 0, refreshed: true }
   } catch (e) {

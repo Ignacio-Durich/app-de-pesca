@@ -295,6 +295,13 @@ describe('river trip zone', () => {
     expect(depthTiles(trip).length).toBe(tilesInRadius(trip.lat, trip.lon, 250, 8, 10).length)
     expect(satTiles({ ...trip, water: 'mar' }).length).toBe(tilesInRadius(trip.lat, trip.lon, 250, 8, 13).length)
   })
+  it('a river forecast with levelError adds the height line to missing', async () => {
+    const getForecast = async () => ({ forecast: { fetchedAt: '2026-11-05T11:00:00.000Z', levelError: 'INA 500' }, ageHours: 0 })
+    const s = await prepareTrip(rio, { ...deps({ tiles: undefined, getForecast }), fetch: recorder().fetchImpl })
+    expect(s.missing).toContain('Altura del río: no se pudo bajar')
+    const ok = await prepareTrip(rio, { ...deps({ tiles: undefined }), fetch: recorder().fetchImpl })
+    expect(ok.missing).not.toContain('Altura del río: no se pudo bajar')
+  })
   it('prepares a river trip with depth.total 0', async () => {
     const s = await prepareTrip(rio, { ...deps({ tiles: undefined }), fetch: recorder().fetchImpl })
     expect(s.depth.total).toBe(0)

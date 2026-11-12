@@ -159,7 +159,7 @@ export function Catches({ trip, me, tripId }) {
           const { date, time } = fromInstant(r.caught_at)
           const cond = [
             r.tide_phase,
-            r.tide_height_m != null && `marea ${num(r.tide_height_m, 2)} m`,
+            r.tide_height_m != null && `${r.level_source?.startsWith('ina:') ? 'río' : 'marea'} ${num(r.tide_height_m, 2)} m`,
             r.wind_kmh != null && `viento ${num(r.wind_kmh, 0)} km/h${r.wind_dir_deg != null ? ` ${cardinal(Number(r.wind_dir_deg))}` : ''}`,
           ].filter(Boolean).join(' · ')
           return (

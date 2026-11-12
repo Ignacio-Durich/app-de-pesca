@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { rankSpots, rankForTrip } from '../src/score/spots.js'
+import { rankSpots, rankForTrip, mergeCatches } from '../src/score/spots.js'
 import { ATUCHA } from '../src/score/config.js'
 import { parseLocal, formatLocal } from '../src/lib/time.js'
 
@@ -54,6 +54,19 @@ describe('rankSpots', () => {
     expect(r.score).toBe(8)
     expect(r.best.t).toBe(`${DAY}T14:00`)
     expect(texts(r)).toContain('sin altura para aplicar la regla')
+  })
+
+  it('best_tide on a day past the height horizon (extremes only on another day)', () => {
+    const ext = [{ t: '2026-11-05T06:00', type: 'low' }, { t: '2026-11-05T12:00', type: 'high' }]
+    const r = first({ spots: [spot({ best_tide: 'bajamar' })], extremes: ext })
+    expect(r.score).toBe(8)
+    expect(texts(r)).toContain('sin altura para aplicar la regla')
+    expect(texts(r)).not.toContain('hoy no le da el agua')
+  })
+
+  it('última uses the local trip date', () => {
+    const cs = [cap(10, { tide_phase: 'bajante', caught_at: '2026-10-02T02:30:00+00:00' })]
+    expect(texts(first({ catches: cs })).some((t) => t.includes('(última: 1/10/2026)'))).toBe(true)
   })
 
   it('level out of range', () => {
@@ -203,5 +216,15 @@ describe('rankForTrip', () => {
     const r = rankForTrip(trip, f, spots, [], 'costa', DAY)
     expect(r.map((x) => x.spot.id)).toEqual(['in'])
     expect(r[0].km).toBeCloseTo(1, 0)
+  })
+})
+
+describe('mergeCatches', () => {
+  it('adds the trip catches to the snapshot without duplicates (same instant, any offset)', () => {
+    const near = [cap(10, { id: 'a', caught_at: '2026-11-07T13:00:00+00:00' }), cap(20, { id: 'b' })]
+    const own = [cap(10, { id: 'a2', caught_at: '2026-11-07T10:00:00-03:00' }), cap(30, { id: 'c' })]
+    const r = mergeCatches(near, own)
+    expect(r.map((c) => c.id).sort()).toEqual(['a2', 'b', 'c'])
+    expect(mergeCatches(near, [])).toHaveLength(2)
   })
 })

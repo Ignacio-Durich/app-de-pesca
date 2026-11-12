@@ -85,6 +85,29 @@ describe('getForecast', () => {
   })
 })
 
+describe('getForecast en río (INA caído al refrescar)', () => {
+  const rio = { lat: -33.968, lon: -59.256, water: 'rio' }
+  const level = { source: 'ina:29437', stationId: 'zarate', forecastDate: 'X', offsetM: 0, points: [{ t: '2026-11-08T10:00', h: 0.8, lo: null, hi: null, measured: true }] }
+  const inaDown = async (url) =>
+    url.includes('alerta.ina') ? new Response('', { status: 500 }) : new Response(JSON.stringify(weather), { status: 200 })
+  beforeEach(() => localDel(cacheKey(rio)))
+
+  it('keeps the saved river heights and still reports levelError', async () => {
+    await localSet(cacheKey(rio), { ...copy(2), level })
+    const r = await getForecast(rio, { now: NOW, fetchImpl: inaDown })
+    expect(r.refreshed).toBe(true)
+    expect(r.forecast.levelError).toBeTruthy()
+    expect(r.forecast.level).toEqual(level)
+    expect(r.forecast.hours.find((h) => h.t === '2026-11-08T10:00').sea).toBe(0.8)
+    expect((await cachedForecast(rio, NOW)).forecast.level).toEqual(level)
+  })
+  it('without a saved level stays with levelError and no level', async () => {
+    const r = await getForecast(rio, { now: NOW, fetchImpl: inaDown })
+    expect(r.forecast.levelError).toBeTruthy()
+    expect(r.forecast.level).toBeUndefined()
+  })
+})
+
 describe('ageLabel', () => {
   it('over 24 h is amber and says the hours', () => {
     expect(ageLabel(30).amber).toBe(true)

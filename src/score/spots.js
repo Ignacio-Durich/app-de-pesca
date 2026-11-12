@@ -1,5 +1,5 @@
 // Puntaje de pesqueros (spec §8.6): módulo puro, sin red ni IndexedDB. Todo se calcula con lo guardado.
-import { parseLocal, formatLocal } from '../lib/time.js'
+import { parseLocal, formatLocal, fromInstant } from '../lib/time.js'
 import { findExtremes } from '../forecast/tides.js'
 import { phaseNameAt } from '../catches/conditions.js'
 import { distanceBearing, within, zoneRadiusKm } from '../map/nav.js'
@@ -10,7 +10,8 @@ import { findWindows } from './windows.js'
 import { SPOT, ATUCHA, SCORE_MAX } from './config.js'
 
 const hhmm = (iso) => iso.slice(11, 16)
-const dmy = (iso) => `${+iso.slice(8, 10)}/${+iso.slice(5, 7)}/${iso.slice(0, 4)}`
+// Fecha local del viaje (UTC−3), no la UTC: una captura de las 23:00 queda en su día.
+const dmy = (iso) => { const { date } = fromInstant(iso); return `${+date.slice(8, 10)}/${+date.slice(5, 7)}/${date.slice(0, 4)}` }
 
 // Altura del agua a la hora t: la de la hora exacta o la media de las dos vecinas (null si falta alguna).
 function seaAt(forecast, t) {
@@ -37,9 +38,12 @@ function rankOne({ spot, catches, slots, extremes, forecast, mode, water, nightF
   const km = from ? distanceBearing(from.lat, from.lon, spot.lat, spot.lon).km : null
 
   // 1. Base: la mejor hora elegible, solo en la fase de marea del pesquero si la tiene
+  // La regla se aplica solo si ese día hay altura (alguna hora con fase); más allá del pronóstico de altura, no.
   let use = slots
-  if (spot.best_tide && extremes.length) {
-    use = slots.map((s) => (phaseNameAt(parseLocal(s.t), extremes) === spot.best_tide ? s : { ...s, score: null }))
+  const phases = spot.best_tide ? slots.map((s) => phaseNameAt(parseLocal(s.t), extremes)) : []
+  const ruled = phases.some((p) => p != null)
+  if (ruled) {
+    use = slots.map((s, i) => (phases[i] === spot.best_tide ? s : { ...s, score: null }))
   } else if (spot.best_tide) {
     lines.push({ text: 'sin altura para aplicar la regla', origin: 'aviso' })
   }
@@ -51,7 +55,7 @@ function rankOne({ spot, catches, slots, extremes, forecast, mode, water, nightF
   if (!best) {
     // spec §8.6: con best_tide y sin horas en esa fase, "hoy no le da el agua"
     // "hoy no le da el agua" solo si ningún slot cae en esa fase; si los hay pero no sirven (noGo, noche) es otro motivo
-    const noWater = spot.best_tide && extremes.length && !use.some((s) => s.score != null)
+    const noWater = ruled && !use.some((s) => s.score != null)
     // [diseño] sin copia en la spec
     lines.push({ text: noWater ? 'hoy no le da el agua' : 'ninguna hora sirve hoy (no conviene salir)', origin: 'diseño' })
     return { spot, score: 0, best: null, km, lines: withTail(lines, spot) }
@@ -97,6 +101,14 @@ function rankOne({ spot, catches, slots, extremes, forecast, mode, water, nightF
   } else lines.push({ text: 'sin capturas del grupo todavía', origin: 'grupo' })
 
   return { spot, score: Math.max(0, Math.min(SCORE_MAX, score)), best: { t: best.t, window }, km, lines: withTail(lines, spot) }
+}
+
+// Capturas del viaje (las de recién) + la copia de "Preparar viaje", sin repetir. Misma captura = mismo instante
+// y lugar: el servidor devuelve UTC y lo local puede venir con -03:00, por eso se compara el instante.
+export function mergeCatches(near = [], own = []) {
+  const k = (c) => `${Date.parse(c.caught_at)}|${c.lat}|${c.lon}`
+  const seen = new Set(own.map(k))
+  return [...own, ...near.filter((c) => !seen.has(k(c)))]
 }
 
 // `from` (opcional): lugar desde el que se mide `km`; por defecto forecast.lat/lon (el lugar del viaje).

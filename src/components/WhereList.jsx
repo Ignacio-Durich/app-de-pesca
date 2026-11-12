@@ -3,27 +3,29 @@ import { useEffect, useMemo, useState } from 'preact/hooks'
 import { Link } from '../nav.jsx'
 import { listRows, nearScope } from '../lib/repo.js'
 import { useRows } from '../lib/useRows.js'
-import { rankForTrip } from '../score/spots.js'
+import { rankForTrip, mergeCatches } from '../score/spots.js'
 import { SPOT } from '../score/config.js'
 import { dec, hhmm } from '../forecast/view.js'
 
 const NOTICE = 'Al principio casi todos los lugares tienen el mismo puntaje: solo los distinguen sus reglas y lo que pesquen ustedes. Carguen las capturas en el lugar donde salieron.' // spec §8.6, aviso fijo
 
-// Capturas del grupo guardadas por "Preparar viaje" (pueden faltar: se cuenta como vacío).
-export function useGroupCatches(trip) {
+// Capturas del grupo guardadas por "Preparar viaje" (pueden faltar: se cuenta como vacío), más las del viaje,
+// así lo que se carga durante el viaje cuenta sin volver a preparar.
+export function useGroupCatches(trip, tripId) {
   const [rows, setRows] = useState([])
+  const [own] = useRows('catches', tripId)
   useEffect(() => {
     let alive = true
     listRows('catchesNear', nearScope(trip.lat, trip.lon)).then((r) => alive && setRows(r ?? []), () => {})
     return () => { alive = false }
   }, [trip.lat, trip.lon])
-  return rows
+  return useMemo(() => mergeCatches(rows, own), [rows, own])
 }
 
 // Spots de la zona ordenados para un día y un modo (null mientras no haya pronóstico).
 export function useRanked(trip, tripId, forecast, mode, day) {
   const [spots] = useRows('spots', nearScope(trip.lat, trip.lon), tripId)
-  const catches = useGroupCatches(trip)
+  const catches = useGroupCatches(trip, tripId)
   return useMemo(
     () => (forecast ? rankForTrip(trip, forecast, spots, catches, mode, day) : null),
     [trip, forecast, spots, catches, mode, day],
