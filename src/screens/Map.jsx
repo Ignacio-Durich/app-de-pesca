@@ -11,14 +11,13 @@ import { dec, dayLabel } from '../forecast/view.js'
 import { conditionsAt } from '../catches/conditions.js'
 import { regionFor, basemapLayer } from '../map/basemap.js'
 import { DEPTH_CACHE } from '../map/tiles.js'
-import { DEPTH_RADIUS_KM, STEP_TIMEOUT_MS } from '../prepare/prepare.js'
+import { STEP_TIMEOUT_MS } from '../prepare/prepare.js'
 import { withTimeout } from '../lib/timeout.js'
-import { toDegMin, within, distanceBearing } from '../map/nav.js'
+import { toDegMin, within, distanceBearing, zoneRadiusKm } from '../map/nav.js'
 import { depthAt, soundingDatum, bandColor, BANDS, BAND_M, BAND_ALPHA } from '../map/depth.js'
 import { GoTo, distLabel } from '../components/GoTo.jsx'
 import { GpsHelp, MarkForm, SoundingForm, SpotEditor } from '../components/MapForms.jsx'
 
-export const SPOTS_RADIUS_KM = DEPTH_RADIUS_KM // [diseño] spec §2.3: spots y sondeos a menos de 250 km, la zona que se descarga
 const START_ZOOM = 11 // [diseño]
 const MAX_ZOOM = 18 // [diseño] el mapa base llega a z15 (vectorial: más cerca se dibuja igual de nítido); satélite y profundidad se agrandan
 const DEPTH_ATTRIBUTION = 'Profundidad: Terrain Tiles (AWS Open Data)'
@@ -44,10 +43,13 @@ export function MapScreen({ trip, me, tripId }) {
   const scope = useMemo(() => nearScope(trip.lat, trip.lon), [trip.lat, trip.lon])
   const [spotRows, reloadSpots, pullSpots] = useRows('spots', scope, tripId)
   const [soundRows, reloadSoundings, pullSoundings] = useRows('soundings', scope, tripId)
-  const spots = useMemo(() => within(spotRows, trip.lat, trip.lon, SPOTS_RADIUS_KM), [spotRows, trip.lat, trip.lon])
+  // Spots y sondeos a menos del radio de la zona que se descarga (spec §2.3, §8.5: 250 km en mar, 100 en río).
+  const radiusKm = zoneRadiusKm(trip)
+  const river = trip.water === 'rio' // spec §8.5: sin capa de profundidad, la leyenda ni el aviso
+  const spots = useMemo(() => within(spotRows, trip.lat, trip.lon, radiusKm), [spotRows, trip.lat, trip.lon, radiusKm])
   const soundings = useMemo(
-    () => within(soundRows, trip.lat, trip.lon, SPOTS_RADIUS_KM).sort((a, b) => Date.parse(a.measured_at) - Date.parse(b.measured_at)),
-    [soundRows, trip.lat, trip.lon],
+    () => within(soundRows, trip.lat, trip.lon, radiusKm).sort((a, b) => Date.parse(a.measured_at) - Date.parse(b.measured_at)),
+    [soundRows, trip.lat, trip.lon, radiusKm],
   )
 
   const el = useRef(null)
@@ -89,16 +91,17 @@ export function MapScreen({ trip, me, tripId }) {
       if (!alive) return
       // Sin el código del mapa (app sin cachear y sin señal): aviso en vez de un mapa en blanco.
       if (!mods) return setLoadErr(true)
-      const [{ default: L }, { depthLayer }, cache, { satLayer }] = mods
+      const [{ default: L }, { depthLayer }, depthCache, { satLayer }] = mods
+      const cache = river ? null : depthCache
       window.L ??= L
       map = L.map(el.current, { maxZoom: MAX_ZOOM }).setView([trip.lat, trip.lon], START_ZOOM)
-      map.attributionControl.addAttribution(DEPTH_ATTRIBUTION)
+      if (!river) map.attributionControl.addAttribution(DEPTH_ATTRIBUTION)
       const g = { L, map, cache, depth: cache && depthLayer(cache) }
       g.depth?.setZIndex(2)
       // Arriba del mapa base (0) y debajo de la profundidad (2).
       g.sat = satLayer(MAX_ZOOM).setZIndex(1)
       for (const k of ['spotsG', 'soundG', 'meG']) g[k] = L.layerGroup().addTo(map)
-      map.on('click', async (e) => {
+      if (!river) map.on('click', async (e) => {
         const popup = L.popup().setLatLng(e.latlng).setContent('Profundidad: …').openOn(map)
         const alt = await probe(e.latlng.lat, e.latlng.lng)
         popup.setContent(textEl(`Profundidad: ${depthText(alt)}\n${WARNING}`))
@@ -117,7 +120,7 @@ export function MapScreen({ trip, me, tripId }) {
       lm.current = null
       setReady(false)
     }
-  }, [trip.lat, trip.lon])
+  }, [trip.lat, trip.lon, river])
 
   useEffect(() => {
     const g = lm.current
@@ -226,7 +229,7 @@ export function MapScreen({ trip, me, tripId }) {
   return (
     <section class="stack">
       <h1>Mapa</h1>
-      <p class="warn">{WARNING}</p>
+      {!river && <p class="warn">{WARNING}</p>}
       {base === 'none' && (
         <p class="muted small">
           Mapa base no descargado — usá <Link href={`/t/${tripId}/preparar`}>Preparar viaje</Link>.
@@ -238,6 +241,7 @@ export function MapScreen({ trip, me, tripId }) {
         <input type="checkbox" checked={satOn} onChange={(e) => setSatOn(e.currentTarget.checked)} />
         Satélite
       </label>
+      {!river && <>
       <div class="legend">
         <label class="check fit">
           <input type="checkbox" checked={depthOn} onChange={(e) => setDepthOn(e.currentTarget.checked)} />
@@ -251,6 +255,7 @@ export function MapScreen({ trip, me, tripId }) {
       </div>
       <p class="muted small">Cada color son {BAND_M} m más de agua; la línea oscura marca cada cambio.</p>
       <p class="muted small">Tocá el mapa para ver la profundidad de ese punto. Sin la zona descargada: "sin dato".</p>
+      </>}
 
       <div class="card">
         <h2>Tu posición</h2>
@@ -258,7 +263,7 @@ export function MapScreen({ trip, me, tripId }) {
           <>
             <p class="coords">{toDegMin(pos.latitude, pos.longitude)}</p>
             <p class="muted">
-              {pos.accuracy != null && `±${Math.round(pos.accuracy)} m · `}Profundidad estimada: {depthText(posDepth)}
+              {pos.accuracy != null && `±${Math.round(pos.accuracy)} m`}{!river && ` · Profundidad estimada: ${depthText(posDepth)}`}
             </p>
             <button class="btn" onClick={() => lm.current?.map.setView(from)}>Centrar en mí</button>
           </>
@@ -305,7 +310,7 @@ export function MapScreen({ trip, me, tripId }) {
       )}
 
       <div class="card">
-        <h2>Spots cerca ({SPOTS_RADIUS_KM} km)</h2>
+        <h2>Spots cerca ({radiusKm} km)</h2>
         {list.length === 0 && <p class="muted">Todavía no hay spots en la zona.</p>}
         <ul class="list">
           {list.map(({ s, km }) => (

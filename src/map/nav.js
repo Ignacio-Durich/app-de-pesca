@@ -1,3 +1,4 @@
+import { ZONE_RADIUS_KM } from '../score/config.js'
 const R = 6371.0088 // km, radio medio terrestre
 const rad = (d) => (d * Math.PI) / 180
 
@@ -25,3 +26,6 @@ export const toDegMin = (lat, lon) => `${part(lat, 'N', 'S')}  ${part(lon, 'E', 
 // Filas (spots, sondeos) a menos de `km` del punto; las que no tienen coordenadas quedan afuera.
 export const within = (rows, lat, lon, km) =>
   rows.filter((r) => r.lat != null && r.lon != null && distanceBearing(lat, lon, r.lat, r.lon).km < km)
+
+// Radio de la zona del viaje: río 100 km, mar (o sin dato) 250 km.
+export const zoneRadiusKm = (trip) => ZONE_RADIUS_KM[trip?.water === 'rio' ? 'rio' : 'mar']

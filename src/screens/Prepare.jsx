@@ -69,10 +69,11 @@ export function Prepare({ trip, tripId }) {
   useEffect(() => { localGet(statusKey(tripId)).then((s) => setStatus(s ?? null), () => setStatus(null)) }, [tripId, running])
   useEffect(() => { navigator.storage?.persisted?.().then(setGuarded, () => {}) }, [])
 
+  const river = trip.water === 'rio' // spec §8.5: sin profundidad
   const region = regionFor(trip.lat, trip.lon)
   const configured = !!import.meta.env.VITE_MAP_BASE_URL
-  const tileCount = useMemo(() => depthTiles(trip).length, [trip.lat, trip.lon])
-  const satCount = useMemo(() => satTiles(trip).length, [trip.lat, trip.lon])
+  const tileCount = useMemo(() => depthTiles(trip).length, [trip.lat, trip.lon, trip.water])
+  const satCount = useMemo(() => satTiles(trip).length, [trip.lat, trip.lon, trip.water])
 
   const start = (withSat) => {
     if (running) return
@@ -98,8 +99,8 @@ export function Prepare({ trip, tripId }) {
               : !region ? 'Mapa base: todavía no hay mapa para este lugar'
               : `Mapa base (${region.name}): ${region.bytes ? mb(region.bytes) : 'tamaño desconocido'}`}
           </li>
-          <li>Profundidad: {tileCount} teselas (unos {Math.round(tileCount * DEPTH_MB_PER_TILE)} MB)</li>
-          <li>Satélite (si lo elegís): {satCount} teselas (en San Blas, unos {SAT_MB_ESTIMATED} MB)</li>
+          {!river && <li>Profundidad: {tileCount} teselas (unos {Math.round(tileCount * DEPTH_MB_PER_TILE)} MB)</li>}
+          <li>Satélite (si lo elegís): {satCount} teselas{!river && ` (en San Blas, unos ${SAT_MB_ESTIMATED} MB)`}</li>
           <li>Spots, sondeos, checklist, itinerario y capturas, con sus fotos</li>
         </ul>
         <p class="muted small">Conviene hacerlo con wifi.</p>
@@ -112,9 +113,9 @@ export function Prepare({ trip, tripId }) {
           <h2>¿Bajar también la vista satelital?</h2>
           <p class="muted small">
             {missing
-              ? `Ocupa unos ${Math.ceil((SAT_MB_ESTIMATED * missing) / satCount)} MB más. Son ${missing} imágenes sueltas: tarda ~${satTime(missing)} según la conexión, y mientras baja te dice cuánto falta.`
+              ? `${river ? '' : `Ocupa unos ${Math.ceil((SAT_MB_ESTIMATED * missing) / satCount)} MB más. `}Son ${missing} imágenes sueltas: tarda ~${satTime(missing)} según la conexión, y mientras baja te dice cuánto falta.`
               : 'El satélite ya está en el teléfono: actualizar no lo vuelve a bajar y tarda poco.'}{' '}
-            Sin satélite el mapa igual tiene calles, costa y profundidad.
+            Sin satélite el mapa igual tiene calles y costa{river ? '' : ' y profundidad'}.
           </p>
           <button class="btn big primary" onClick={() => start(true)} disabled={s === undefined}>
             {s ? 'Actualizar' : 'Preparar'} con satélite ({missing ? `~${satTime(missing)}` : 'ya está bajado'})
@@ -149,7 +150,7 @@ export function Prepare({ trip, tripId }) {
           <ul class="list">
             <li>{ok(s.forecastAt)} Pronóstico{s.forecastAt && ` · ${when(s.forecastAt)}`}</li>
             <li>{ok(s.regionAt)} Mapa base{s.regionAt ? ` · ${when(s.regionAt)}` : s.regionNote ? ` · ${s.regionNote}` : ''}</li>
-            <li>{ok(s.depth.total && s.depth.done === s.depth.total)} Profundidad · {s.depth.done} de {s.depth.total} teselas</li>
+            {!river && <li>{ok(s.depth.total && s.depth.done === s.depth.total)} Profundidad · {s.depth.done} de {s.depth.total} teselas</li>}
             {s.sat ? <li>{ok(s.sat.total && s.sat.done === s.sat.total)} Satélite · {s.sat.done} de {s.sat.total} teselas</li>
               : <li>— Satélite · no se bajó (se ve solo con señal)</li>}
             <li>{ok(s.dataAt)} Spots, sondeos, checklist, itinerario y capturas{s.dataAt && ` · ${when(s.dataAt)}`}</li>

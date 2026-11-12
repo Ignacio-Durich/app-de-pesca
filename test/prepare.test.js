@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import { prepareTrip, needsReminder, zoneChanged, isReady, needsSatMove, needsResume, statusKey, depthTiles, satTiles, satTime, satMissing } from '../src/prepare/prepare.js'
 import regions from '../src/data/regions.json'
+import { tilesInRadius } from '../src/map/tiles.js'
 
 const trip = { id: 't1', lat: -40.5512, lon: -62.2349, start_date: '2026-11-07', end_date: '2026-11-08' }
 const TILES = Array.from({ length: 10 }, (_, i) => ({ z: 12, x: 1000 + i, y: 2000 }))
@@ -45,6 +46,7 @@ function deps(extra = {}) {
     set: async (k, v) => void store.set(k, structuredClone(v)), // copia, como IndexedDB
     getForecast: async () => ({ forecast: { fetchedAt: '2026-11-05T11:00:00.000Z' }, ageHours: 0 }),
     pull: async (table) => (table === 'catches' ? [{ id: 'c1', photo_path: 't1/c1.jpg' }, { id: 'c2', photo_path: null }] : []),
+    pullCatchesNear: async () => [],
     photoUrl: PHOTO,
     tiles: TILES,
     sat: [],
@@ -280,6 +282,35 @@ describe('prepareTrip', () => {
     const s = await prepareTrip(trip, { ...d, fetch: recorder().fetchImpl })
     expect(s.dataAt).toBeNull()
     expect(s.missing.join(' ')).toMatch(/Datos del viaje/)
+  })
+})
+
+describe('river trip zone', () => {
+  const rio = { ...trip, lat: -33.968, lon: -59.256, water: 'rio' }
+  it('has no depth tiles and a 100 km satellite zone', () => {
+    expect(depthTiles(rio)).toEqual([])
+    expect(satTiles(rio).length).toBe(tilesInRadius(rio.lat, rio.lon, 100, 8, 13).length)
+  })
+  it('sea trips keep 250 km', () => {
+    expect(depthTiles(trip).length).toBe(tilesInRadius(trip.lat, trip.lon, 250, 8, 10).length)
+    expect(satTiles({ ...trip, water: 'mar' }).length).toBe(tilesInRadius(trip.lat, trip.lon, 250, 8, 13).length)
+  })
+  it('prepares a river trip with depth.total 0', async () => {
+    const s = await prepareTrip(rio, { ...deps({ tiles: undefined }), fetch: recorder().fetchImpl })
+    expect(s.depth.total).toBe(0)
+  })
+})
+
+describe('catchesNear step', () => {
+  it('pulls nearby catches with the zone radius', async () => {
+    const seen = []
+    const s = await prepareTrip({ ...trip, water: 'rio' }, { ...deps(), fetch: recorder().fetchImpl, pullCatchesNear: async (lat, lon, km) => void seen.push([lat, lon, km]) })
+    expect(seen).toEqual([[trip.lat, trip.lon, 100]])
+    expect(s.missing).not.toContain('Capturas del grupo: sin señal')
+  })
+  it('a rejecting pull adds its line to missing', async () => {
+    const s = await prepareTrip(trip, { ...deps(), fetch: recorder().fetchImpl, pullCatchesNear: async () => { throw new Error('rpc') } })
+    expect(s.missing).toContain('Capturas del grupo: sin señal')
   })
 })
 

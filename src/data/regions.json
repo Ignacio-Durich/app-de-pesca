@@ -11,5 +11,18 @@
     "bboxNote": "[diseño] 250 km alrededor de San Blas (-40,55, -62,23), el mismo radio que la profundidad y el satélite (minlon, minlat, maxlon, maxlat)",
     "file": "san-blas.pmtiles",
     "bytes": 43893951
+  },
+  {
+    "id": "lima",
+    "name": "Lima (Paraná de las Palmas)",
+    "bbox": [
+      -60.34,
+      -34.87,
+      -58.18,
+      -33.07
+    ],
+    "bboxNote": "[diseño] 100 km alrededor de Chacras del Paraná (-33,968, -59,256)",
+    "file": "lima.pmtiles",
+    "bytes": 72689696
   }
 ]

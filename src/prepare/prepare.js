@@ -1,13 +1,15 @@
 // "Preparar viaje" (spec §2.9): baja lo necesario para usar el viaje sin señal y guarda qué quedó.
 // Retoma donde quedó (spec §5, Review Focus 4): lo que ya está guardado no se vuelve a pedir.
 import { getForecast as defaultGetForecast } from '../forecast/cache.js'
-import { pull as repoPull, nearScope } from '../lib/repo.js'
+import { pull as repoPull, pullCatchesNear as repoPullNear, nearScope } from '../lib/repo.js'
 import { makeClient } from '../lib/db.js'
 import { localGet, localSet } from '../lib/local.js'
 import { withTimeout, timeoutSignal } from '../lib/timeout.js'
 import { parseLocal, fromInstant } from '../lib/time.js'
 import { regionFor, regionKey, downloadRegion } from '../map/basemap.js'
 import { tilesInRadius, depthTileUrl, DEPTH_CACHE, satTileUrl, SAT_CACHE } from '../map/tiles.js'
+import { zoneRadiusKm } from '../map/nav.js'
+import { ZONE_RADIUS_KM } from '../score/config.js'
 import { satStore as defaultSatStore } from '../map/satStore.js'
 
 // [diseño] spec §3.4: teselas de profundidad de zoom 8 a 10 en un radio de 250 km (el grupo hace más de
@@ -15,7 +17,7 @@ import { satStore as defaultSatStore } from '../map/satStore.js'
 // las tres dentro de 250 km en línea recta). Medido el 30/10 en 8
 // puntos del mar de San Blas: z8–10 dan entre −2 y −25 m, z11–12 dan 0 m (sin batimetría). Desde z11
 // se agranda la z10, que ya tiene más detalle que ETOPO1 (~1,8 km por celda).
-export const DEPTH_RADIUS_KM = 250
+export const DEPTH_RADIUS_KM = ZONE_RADIUS_KM.mar
 export const DEPTH_ZMIN = 8
 export const DEPTH_ZMAX = 10
 // [diseño] satélite de zoom 8 a 13 en el mismo radio: con 10 m por píxel, z13 (~15 m) ya muestra todo el
@@ -60,8 +62,9 @@ const TRIP_TABLES = ['trips', 'checklist_items', 'itinerary_items', 'catches']
 const NEAR_TABLES = ['spots', 'soundings']
 
 export const statusKey = (tripId) => `prepare:${tripId}`
-export const depthTiles = (trip) => tilesInRadius(trip.lat, trip.lon, DEPTH_RADIUS_KM, DEPTH_ZMIN, DEPTH_ZMAX)
-export const satTiles = (trip) => tilesInRadius(trip.lat, trip.lon, DEPTH_RADIUS_KM, SAT_ZMIN, SAT_ZMAX)
+// Río (spec §8.5): las teselas globales no tienen datos en el río, la capa de profundidad no se baja.
+export const depthTiles = (trip) => (trip.water === 'rio' ? [] : tilesInRadius(trip.lat, trip.lon, zoneRadiusKm(trip), DEPTH_ZMIN, DEPTH_ZMAX))
+export const satTiles = (trip) => tilesInRadius(trip.lat, trip.lon, zoneRadiusKm(trip), SAT_ZMIN, SAT_ZMAX)
 // La zona creció (80 → 250 km el 30/10): lo guardado antes no la cubre y hay que tocar Actualizar.
 export const zoneChanged = (trip, status) =>
   !!status && (status.depth?.total !== depthTiles(trip).length || (status.sat !== null && status.sat?.total !== satTiles(trip).length))
@@ -80,6 +83,7 @@ function supabaseDeps(tripId) {
   const client = makeClient(tripId)
   return {
     pull: (table, scope) => repoPull(client, table, scope),
+    pullCatchesNear: (lat, lon, km) => repoPullNear(client, lat, lon, km),
     photoUrl: (path) => client.storage.from('catch-photos').getPublicUrl(path).data.publicUrl,
   }
 }
@@ -118,7 +122,7 @@ async function cacheTiles(open, urls, parallel, fetchImpl, prog, onBatch, before
 // PrepareStatus = {forecastAt, regionAt, regionNote, depth: {done, total}, sat: {done, total} | null (no lo eligió), satDb: el satélite ya está todo en IndexedDB, dataAt, photos: {done, total}, missing: string[]}
 // Se guarda en prepare:<tripId> después de cada paso. onProgress({step, done?, total?}).
 export async function prepareTrip(trip, opts = {}) {
-  const sb = opts.pull && opts.photoUrl ? {} : supabaseDeps(trip.id)
+  const sb = opts.pull && opts.photoUrl && opts.pullCatchesNear ? {} : supabaseDeps(trip.id)
   const {
     onProgress = () => {},
     fetch: fetchImpl = globalThis.fetch,
@@ -126,6 +130,7 @@ export async function prepareTrip(trip, opts = {}) {
     satStore = defaultSatStore,
     getForecast = defaultGetForecast,
     pull = sb.pull,
+    pullCatchesNear = sb.pullCatchesNear,
     photoUrl = sb.photoUrl,
     get = localGet,
     set = localSet,
@@ -217,6 +222,14 @@ export async function prepareTrip(trip, opts = {}) {
   ])
   if (pulled.every((r) => r.status === 'fulfilled')) s.dataAt = iso()
   else s.missing.push('Datos del viaje: sin señal o se cortó')
+  await save()
+
+  // 4b. Capturas del grupo cerca (mar y río): se muestran en "dónde pescar"; sin esto, sin señal quedan vacías.
+  try {
+    await withTimeout(pullCatchesNear(trip.lat, trip.lon, zoneRadiusKm(trip)), STEP_TIMEOUT_MS)
+  } catch {
+    s.missing.push('Capturas del grupo: sin señal')
+  }
   await save()
 
   // 5. Fotos de las capturas: una vez cada una; las que fallan se reintentan la próxima.

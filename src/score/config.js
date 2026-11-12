@@ -44,6 +44,9 @@ export const UNCERTAIN_KMH = 10
 export const NIGHT_CAP = 2
 export const WINDOW_MIN = 7
 export const MAX_WINDOWS = 3
+// [diseño] spec §8.5: radio de la zona que se descarga y se muestra (spots, sondeos, satélite, capturas del grupo).
+// 250 km en mar (el grupo maneja hasta 4 h por día); 100 km en río (Lima está a ~100 km de Zárate).
+export const ZONE_RADIUS_KM = { mar: 250, rio: 100 }
 export const STATION_MAX_KM = 60 // [diseño] spec §8.1
 
 // [diseño] spec §8.2: pesos del puntaje de río (la presión pesa; no hay marea astronómica).

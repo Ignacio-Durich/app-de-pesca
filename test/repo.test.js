@@ -113,6 +113,18 @@ describe('repo', () => {
     expect(await R.listRows('spots', 'near:-40.5,-62.2')).toEqual([{ id: 's' }])
   })
 
+  it('pullCatchesNear calls the rpc and stores the rows under the near scope', async () => {
+    const calls = []
+    const c = { rpc: async (fn, args) => (calls.push([fn, args]), { data: [{ id: 'n1' }], error: null }) }
+    expect(await R.pullCatchesNear(c, -33.968, -59.256, 100)).toEqual([{ id: 'n1' }])
+    expect(calls).toEqual([['catches_near', { p_lat: -33.968, p_lon: -59.256, p_km: 100 }]])
+    expect(await R.listRows('catchesNear', R.nearScope(-33.968, -59.256))).toEqual([{ id: 'n1' }])
+  })
+
+  it('pullCatchesNear throws on rpc error', async () => {
+    await expect(R.pullCatchesNear({ rpc: async () => ({ data: null, error: new Error('x') }) }, 1, 2, 3)).rejects.toThrow('x')
+  })
+
   it('pull throws on a server error and leaves local rows alone', async () => {
     await R.saveRow('catches', T, { id: 'a' })
     const bad = { from: () => ({ select: () => Object.assign(Promise.resolve({ data: null, error: { message: 'offline' } }), { eq() { return this } }) }) }

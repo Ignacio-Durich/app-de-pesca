@@ -401,6 +401,8 @@ Lo verificado el 11/11 está en §9.1.
   - Se guarda en `tide_height_m`, igual que en los sondeos, y se agrega `catches.level_source text` (`marea` o `ina:<serie>`).
   - La fase (`tide_phase`) sale de la oscilación diaria del río, con los mismos nombres que en mar: creciente, bajante, pleamar y bajamar.
 
+- **Zona y mapa base de río:** el radio es de 100 km **[diseño]** (`ZONE_RADIUS_KM.rio`; 250 km en mar) alrededor de Chacras del Paraná (−33,968, −59,256): spots, sondeos, satélite y capturas del grupo (`catches_near`, que "Preparar viaje" baja para usarse sin señal). Región `lima` (−60,34, −34,87, −58,18, −33,07), recortada del build 20261111 de Protomaps con zoom 0–15: **72.689.696 bytes (72,7 MB)**; pasa los 25 MiB de Cloudflare Pages, así que va a R2 (pendiente de subir). Sin capa de profundidad, la estimación del satélite usa las teselas del viaje.
+
 ### 8.6 Dónde pescar
 Responde el comentario del 8/11: *"Que nos ayude a encontrar dónde pescar además de cuándo… Que haga recomendaciones de lugares puntuándolo y por qué están puntuados así."*
 
