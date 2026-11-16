@@ -16,7 +16,7 @@ beforeEach(() => {
 
 const fields = {
   name: 'San Blas', placeName: 'San Blas', lat: -40.55, lon: -62.23,
-  startDate: '2026-11-07', endDate: '2026-11-09', members: ['Nacho', 'Fernando'], water: 'mar', nightFishing: false,
+  startDate: '2026-11-07', endDate: '2026-11-09', members: ['Nacho', 'Beto'], water: 'mar', nightFishing: false,
 }
 const never = () => new Promise(() => {})
 
@@ -25,7 +25,7 @@ describe('createTrip', () => {
     const id = await createTrip(fields)
     expect(id).toMatch(/^[0-9a-f-]{36}$/)
     const [row] = await listRows('trips', id)
-    expect(row).toMatchObject({ id, name: 'San Blas', place_name: 'San Blas', lat: -40.55, start_date: '2026-11-07', members: ['Nacho', 'Fernando'], water: 'mar', night_fishing: false })
+    expect(row).toMatchObject({ id, name: 'San Blas', place_name: 'San Blas', lat: -40.55, start_date: '2026-11-07', members: ['Nacho', 'Beto'], water: 'mar', night_fishing: false })
     expect((await pending()).some((o) => o.table === 'trips' && o.tripId === id)).toBe(true)
     expect(recentTrips()).toEqual([{ id, name: 'San Blas' }])
   })
@@ -73,9 +73,9 @@ describe('getMe / setMe', () => {
   it('se guardan por viaje', () => {
     expect(getMe('a')).toBe(null)
     setMe('a', 'Nacho')
-    setMe('b', 'Jero')
+    setMe('b', 'Caro')
     expect(getMe('a')).toBe('Nacho')
-    expect(getMe('b')).toBe('Jero')
+    expect(getMe('b')).toBe('Caro')
   })
 })
 

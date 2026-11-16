@@ -232,7 +232,7 @@
   - Home: crear viaje (formulario con lugar por lat/lon o tocando un mapa simple, fechas, integrantes, pesca nocturna) y lista de recientes;
   - WhoAreYou: botones por integrante;
   - con `offlineFirstOpen`, el texto exacto "Abrí este link una vez con señal para descargar el viaje."
-- [ ] **Step 4:** Crear el viaje real "San Blas" (−40.55, −62.23; 7 al 9/11; Nacho, Fernando, Jero, Manu, El; sin pesca nocturna) y verificar el link en dos teléfonos.
+- [ ] **Step 4:** Crear el viaje real "San Blas" (−40.55, −62.23; 7 al 9/11; cinco integrantes; sin pesca nocturna) y verificar el link en dos teléfonos.
 - [ ] **Step 5:** Commit `feat: trips, share link and member picker`.
 
 ### Task 9: Pantalla Pronóstico (offline) y caché del pronóstico

@@ -6,12 +6,12 @@ Fecha: 2026-10-29 · Autor: Nacho (con Claude) · Datos verificados el 29/10/202
 
 ## 1. Objetivo
 
-Una web app para que un grupo de amigos planifique y registre viajes de pesca. Responde la pregunta central de Fernando: **a qué hora tener los anzuelos en el agua y cuánto dura la ventana**, según marea, viento, luz y luna. Además ordena la logística del viaje: checklist, itinerario, spots y capturas.
+Una web app para que un grupo de amigos planifique y registre viajes de pesca. Responde la pregunta central del grupo: **a qué hora tener los anzuelos en el agua y cuánto dura la ventana**, según marea, viento, luz y luna. Además ordena la logística del viaje: checklist, itinerario, spots y capturas.
 
-**Primer uso real:** viaje del grupo "Luroooo" (Nacho, Fernando, Jero, Manu, El) a Bahía San Blas, Buenos Aires. Según el chat del grupo:
-- Sábado 7/11/2026: viaje. Están a "2 horas y media más o menos", con ripio.
+**Primer uso real:** viaje de un grupo de cinco amigos a Bahía San Blas, Buenos Aires. Según lo que acordó el grupo:
+- Sábado 7/11/2026: viaje, unas 2 horas y media con ripio.
 - Domingo 8/11: pesca de costa.
-- Lunes 9/11: "día de la reserva", a buscar cazón con guía.
+- Lunes 9/11: salida a la reserva, a buscar cazón con guía.
 
 **Éxito:**
 - El domingo y el lunes el grupo sabe con anticipación sus mejores ventanas de pesca diurnas.
@@ -21,7 +21,7 @@ Una web app para que un grupo de amigos planifique y registre viajes de pesca. R
 
 ### Lo que dijo el usuario vs. lo que se asumió
 - **Dicho:** web por link, reusable, datos en vivo, acceso con link y "Soy X", todos los extras (spots, checklist, capturas, itinerario), puntaje por hora, offline como prioridad, mapa de profundidad, condiciones automáticas en cada captura, especies y reglamento, Cloudflare + Supabase y fase 2 de río.
-- **Asumido:** costa y embarcado necesitan reglas de puntaje distintas; en San Blas no se pesca de noche (Fernando: "Espero que no sea de noche"); alcanza con "gana el último cambio" para la edición concurrente.
+- **Asumido:** costa y embarcado necesitan reglas de puntaje distintas; en San Blas no se pesca de noche (lo pidió el grupo); alcanza con "gana el último cambio" para la edición concurrente.
 
 ### Fuera de alcance
 Chat, notificaciones push, cuentas y contraseñas, tablas de marea más allá del horizonte del pronóstico, app nativa y navegación. La app no reemplaza la carta náutica, el GPS náutico ni la sonda del barco.
@@ -80,7 +80,7 @@ Chat, notificaciones push, cuentas y contraseñas, tablas de marea más allá de
 - **Especies de San Blas:**
   - **Tesis doctoral UNLP (Llompart, 2011)** sobre la pesca deportiva en la bahía: pescadilla de red y corvina rubia (las principales, más del 60% del peso capturado), pejerrey (más del 85% de lo que se pesca desde el puente), lenguado, gatuzo y rayas.
     - **Temporada:** la actividad se concentra en primavera y verano, con pico en diciembre y enero. Las salidas embarcadas van de octubre a abril, con más viajes en noviembre y diciembre.
-  - **Además, con fuente:** cazón (lo menciona la Disposición 217/07 como pesca deportiva; según una nota, en noviembre hay salidas nocturnas de costa con marcado y devolución) y pez elefante (Disposición 217/07; lo nombró Fernando).
+  - **Además, con fuente:** cazón (lo menciona la Disposición 217/07 como pesca deportiva; según una nota, en noviembre hay salidas nocturnas de costa con marcado y devolución) y pez elefante (Disposición 217/07; lo nombró un integrante).
 - **Reglamento de Buenos Aires: Disposición 217/07** (texto oficial en normas.gba.gob.ar):
   - **Art. 14:** devolución obligatoria y prohibición de sacrificio para los grandes tiburones costeros. El texto nombra al escalandrún, la bacota, el gatopardo, el **cazón** (*Galeorhinus galeus*) y el tiburón martillo. Desde embarcación, una caña por pescador; desde costa, dos. Un solo anzuelo por aparejo, sin anzuelos en tándem.
   - **Pesca variada con reserva** (rayas, chuchos, pez ángel, **pez elefante**, corvina negra): se pueden sacrificar hasta 2 ejemplares; el resto se devuelve.
@@ -137,7 +137,7 @@ Todas responden con CORS abierto (`Access-Control-Allow-Origin: *`), verificado 
 - **Marea:** `marine-api.open-meteo.com/v1/marine`, con `hourly=sea_level_height_msl,wave_height,sea_surface_temperature`, `cell_selection=sea` y `timezone=America/Argentina/Buenos_Aires`.
   - Las pleamares y bajamares son los máximos y mínimos locales de la serie horaria, refinados con interpolación parabólica de 3 puntos.
   - **Validado:** para el 7/11 en San Blas, Open-Meteo da sus extremos en 01:00, 07:00, 13:00 y 19:00 (serie horaria, sin refinar), y tide-forecast.com da 00:42, 07:05, 13:09 y 19:09. Diferencia máxima: 18 min.
-  - Las mareas que Fernando pasó al grupo (01:28 / 07:57 / 14:08 / 19:59) coinciden con las de tide-forecast.com para el domingo 8/11.
+  - Las mareas que un integrante pasó al grupo (01:28 / 07:57 / 14:08 / 19:59) coinciden con las de tide-forecast.com para el domingo 8/11.
 - **Clima:** `api.open-meteo.com/v1/forecast`, con `hourly=wind_speed_10m,wind_gusts_10m,wind_direction_10m,precipitation_probability,temperature_2m,surface_pressure`, `daily=sunrise,sunset` y `models=ecmwf_ifs025,gfs_seamless,icon_seamless`.
   - Con `models`, cada variable viene con sufijo por modelo, también las diarias (`wind_speed_10m_ecmwf_ifs025`, `sunrise_gfs_seamless`, etc.). Las tres variables por hora vienen para los tres modelos.
   - **Desacuerdo entre modelos, medido el 29/10 para el 4/11 a las 12:00 en San Blas:** ECMWF 10,4 km/h e ICON 30,2 km/h, una diferencia de 19,8 km/h.
@@ -235,7 +235,7 @@ soundings(id uuid pk, lat float8, lon float8, depth_measured_m numeric,
 
 ## 4. Puntaje de pesca
 
-**Todo este capítulo es [diseño]:** una regla aproximada que parte del razonamiento de Fernando en el chat (creciente y repunte) y de criterios comunes. No son datos medidos. Pesos y umbrales viven en `src/score/config.js` y se ajustan con las capturas.
+**Todo este capítulo es [diseño]:** una regla aproximada que parte del razonamiento de un integrante del grupo (creciente y repunte) y de criterios comunes. No son datos medidos. Pesos y umbrales viven en `src/score/config.js` y se ajustan con las capturas.
 
 Se calcula para cada hora `h` del día.
 
@@ -497,8 +497,8 @@ Los pesqueros que solo tienen fuente externa y ninguna captura dicen "sin captur
 
 | Dato | Fuente | Estado |
 |---|---|---|
-| Plan del viaje (fechas, 2,5 h, cazón el lunes) | Chat del grupo y aclaración de Nacho | ✓ |
-| Mareas del 8/11 de Fernando = tide-forecast | [tide-forecast San Blas](https://www.tide-forecast.com/locations/San-Blas-Argentina/tides/latest) | ✓ coinciden al minuto |
+| Plan del viaje (fechas, 2,5 h, cazón el lunes) | Lo que acordó el grupo y aclaración de Nacho | ✓ |
+| Mareas del 8/11 que pasó un integrante = tide-forecast | [tide-forecast San Blas](https://www.tide-forecast.com/locations/San-Blas-Argentina/tides/latest) | ✓ coinciden al minuto |
 | Open-Meteo vs tide-forecast, 7/11 | Pedido real a la API vs la página | ✓ máximo 18 min |
 | Parámetros y horizonte de Open-Meteo | Pedidos reales a la API | ✓ marea ~9 días; ICON ~7, ECMWF/GFS ~15 |
 | Desacuerdo de modelos de 19,8 km/h | Pedido real a la API | ✓ |
