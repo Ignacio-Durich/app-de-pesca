@@ -6,7 +6,9 @@ import { recentTrips, startPath } from './trips/trips.js'
 import './styles.css'
 import './icons.css'
 
-startAutoFlush(makeClient)
+// Spots y sondeos no son de un viaje (tripId null), pero el servidor pide uno que exista (migración 005):
+// suben con el último viaje abierto.
+startAutoFlush((id) => makeClient(id ?? recentTrips()[0]?.id))
 
 // Un deploy nuevo toma el control (autoUpdate + skipWaiting + clientsClaim) y borra los archivos viejos:
 // se recarga una vez para no seguir con una página que pide chunks que ya no existen (ej. el mapa sin señal).

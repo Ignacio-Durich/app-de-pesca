@@ -197,12 +197,12 @@ soundings(id uuid pk, lat float8, lon float8, depth_measured_m numeric,
   - La documentación de Supabase confirma que esto funciona en la API REST.
   - Ese header **no llega** a Realtime, que la app no usa.
 - **Resultado:** sin el UUID del viaje no se puede listar ni modificar nada de ese viaje.
-- **Crear un viaje:** `insert` abierto para la clave anónima.
-- **`spots` y `soundings`:** lectura, inserción y edición abiertas. No tienen datos sensibles.
+- **Crear un viaje (migración 005, 16/11/2026):** pide el header `x-create-key` con una clave que solo tiene el dueño. La app la valida con `check_create_key()` y la guarda en el teléfono la primera vez; la clave vive en `.env.local` y la base guarda solo su sha256. Antes el `insert` era abierto: con la clave pública que viaja en la app, cualquiera podía crear viajes.
+- **`spots` y `soundings`:** lectura, inserción y edición desde un viaje que exista (header `x-trip-id`, migración 005). Antes eran abiertas. Las operaciones de spots y sondeos suben con el último viaje abierto.
 - **Storage (confirmado):**
   - **En el código de `supabase/storage`:** el servidor carga en la base `set_config('request.headers', …)` con `JSON.stringify` de todos los headers del pedido (`src/internal/database/postgres/scope.ts` y `pg-connection.ts`). Las políticas de `storage.objects` pueden leer `x-trip-id` igual que las tablas.
   - **CORS:** un pedido de verificación (OPTIONS) a Storage y a REST de un proyecto Supabase respondió `access-control-allow-headers` con `x-trip-id`, así que el navegador puede mandarlo.
-  - **Política:** lectura pública por ruta. Escritura solo si la primera carpeta de la ruta es igual a `x-trip-id`.
+  - **Política:** lectura pública por ruta. Escritura solo si la primera carpeta de la ruta es igual a `x-trip-id` y ese viaje existe (migración 005).
   - El primer día igual se corre una prueba de punta a punta (§7).
 - **Límite conocido:** cualquiera con el link puede editar. Para un grupo de amigos es aceptable.
 

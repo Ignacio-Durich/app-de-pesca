@@ -29,6 +29,14 @@ describe('makeClient', () => {
     expect(seen[0].has('x-trip-id')).toBe(false)
   })
 
+  it('sends x-create-key only when there is one', async () => {
+    const { seen, fetch } = spy()
+    await makeClient(A, { ...cfg(fetch), createKey: 'k-1' }).from('trips').select()
+    await makeClient(A, cfg(fetch)).from('trips').select()
+    expect(seen[0].get('x-create-key')).toBe('k-1')
+    expect(seen[1].has('x-create-key')).toBe(false)
+  })
+
   afterEach(() => vi.useRealTimers())
   it('a stalled request is aborted, so a flush cannot hang forever (F3)', async () => {
     vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] })

@@ -1,6 +1,6 @@
 import 'fake-indexeddb/auto'
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
-import { createTrip, loadTrip, getMe, setMe, recentTrips, LOAD_TIMEOUT_MS, tripIdFrom, startPath } from '../src/trips/trips.js'
+import { createTrip, loadTrip, getMe, setMe, recentTrips, LOAD_TIMEOUT_MS, tripIdFrom, startPath, hasCreateKey, saveCreateKey } from '../src/trips/trips.js'
 import { listRows, saveRow } from '../src/lib/repo.js'
 import { pending } from '../src/lib/queue.js'
 
@@ -110,5 +110,22 @@ describe('recentTrips order', () => {
     expect(recentTrips()[0].id).toBe(b)
     await loadTrip(a, { pullImpl: async () => {} })
     expect(recentTrips().map((t) => t.id)).toEqual([a, b])
+  })
+})
+
+describe('clave para crear viajes (migración 005)', () => {
+  const server = (answer) => ({ rpc: async (fn) => (fn === 'check_create_key' ? answer : { error: new Error('rpc') }) })
+
+  it('se guarda solo si el servidor dice que es la correcta', async () => {
+    expect(hasCreateKey()).toBe(false)
+    expect(await saveCreateKey('mala', server({ data: false, error: null }))).toBe(false)
+    expect(hasCreateKey()).toBe(false)
+    expect(await saveCreateKey('buena', server({ data: true, error: null }))).toBe(true)
+    expect(hasCreateKey()).toBe(true)
+  })
+
+  it('sin red lanza y no guarda nada', async () => {
+    await expect(saveCreateKey('x', server({ data: null, error: new Error('Failed to fetch') }))).rejects.toThrow()
+    expect(hasCreateKey()).toBe(false)
   })
 })

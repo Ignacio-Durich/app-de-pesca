@@ -1,4 +1,4 @@
-import { makeClient } from '../lib/db.js'
+import { makeClient, getCreateKey, setCreateKey } from '../lib/db.js'
 import { listRows, saveRow, pull } from '../lib/repo.js'
 import { withTimeout } from '../lib/timeout.js'
 
@@ -26,6 +26,17 @@ export const startPath = (pathname, recents) => (pathname === '/' && recents[0] 
 const UUID_RE = /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i
 export const tripIdFrom = (text) => text.match(UUID_RE)?.[0].toLowerCase() ?? null
 const addRecent = ({ id, name }) => write('recentTrips', [{ id, name }, ...recentTrips().filter((t) => t.id !== id)])
+
+// Crear viajes pide una clave (migración 005). Se valida con el servidor antes de guardarla, así una
+// equivocada no deja viajes que nunca suben. Lanza si no hay red; false si la clave no es.
+export const hasCreateKey = () => !!getCreateKey()
+export async function saveCreateKey(key, client = makeClient(null, { createKey: key })) {
+  const { data, error } = await client.rpc('check_create_key')
+  if (error) throw error
+  if (data !== true) return false
+  setCreateKey(key)
+  return true
+}
 
 // Offline primero: guarda local y encola; la cola lo sube con el header del propio viaje.
 export async function createTrip({ name, placeName, lat, lon, startDate, endDate, members, water = 'mar', nightFishing = false }) {

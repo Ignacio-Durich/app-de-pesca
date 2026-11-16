@@ -1,7 +1,6 @@
 # Prueba en los 5 teléfonos (Tarea 16)
 
-App: **https://app-de-pesca.pages.dev**
-Link del viaje (mandarlo por WhatsApp): **https://app-de-pesca.pages.dev/t/00000000-0000-4000-8000-000000000000**
+Link del viaje (mandarlo por WhatsApp): **`https://<la app>/t/<id del viaje>`**
 
 Hacerla con tiempo antes del sábado 7/11, con wifi. Anotar en cada punto: ✓, ✗ o qué pasó, y en qué teléfono (iPhone / Android).
 

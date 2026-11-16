@@ -1,7 +1,7 @@
 import { useState } from 'preact/hooks'
 import { Link, navigate } from '../nav.jsx'
 import { nearestStation } from '../river/ina.js'
-import { createTrip, recentTrips, tripIdFrom } from '../trips/trips.js'
+import { createTrip, hasCreateKey, recentTrips, saveCreateKey, tripIdFrom } from '../trips/trips.js'
 
 const num = (s) => (s.trim() === '' ? NaN : Number(s))
 // Acepta varios nombres separados por coma; descarta vacíos y repetidos.
@@ -13,6 +13,8 @@ export function Home() {
   const [draft, setDraft] = useState('')
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
+  const [needKey, setNeedKey] = useState(() => !hasCreateKey())
+  const [createKey, setCreateKeyText] = useState('')
   const [link, setLink] = useState('')
   const [linkError, setLinkError] = useState('')
   const set = (k) => (e) => setF({ ...f, [k]: e.target.type === 'checkbox' ? e.target.checked : e.target.value })
@@ -43,8 +45,18 @@ export function Home() {
     if (!(lat >= -90 && lat <= 90) || !(lon >= -180 && lon <= 180)) return setError('Cargá latitud y longitud válidas (ej: -40.55 y -62.23).')
     if (!f.startDate || !f.endDate || f.endDate < f.startDate) return setError('Revisá las fechas: el fin no puede ser antes del inicio.')
     if (!all.length) return setError('Agregá al menos un integrante.')
+    if (needKey && !createKey.trim()) return setError('Cargá la clave para crear viajes.')
     setError('')
     setBusy(true)
+    if (needKey) {
+      let ok
+      try { ok = await saveCreateKey(createKey.trim()) } catch { ok = null }
+      if (!ok) {
+        setBusy(false)
+        return setError(ok === false ? 'Esa clave no es la correcta.' : 'Para cargar la clave hace falta señal. Probá de nuevo con internet.')
+      }
+      setNeedKey(false)
+    }
     try {
       const id = await createTrip({
         name: f.name.trim(), placeName: f.placeName.trim() || f.name.trim(), lat, lon,
@@ -124,6 +136,12 @@ export function Home() {
         )}
         {noStation && <p class="muted" role="status">No hay una estación del INA con pronóstico a menos de 60 km: el puntaje va a ir sin altura del río</p>}
         <label class="check"><input type="checkbox" checked={f.nightFishing} onChange={set('nightFishing')} /> Pesca nocturna</label>
+        {needKey && (
+          <label>Clave para crear viajes
+            <input value={createKey} onInput={(e) => setCreateKeyText(e.target.value)} autocomplete="off" autocapitalize="off" spellcheck={false} />
+            <span class="muted">Se carga una sola vez en este teléfono, con señal. Para entrar a un viaje que ya existe alcanza con su link.</span>
+          </label>
+        )}
         {error && <p class="error" role="alert">{error}</p>}
         <button class="btn primary big" disabled={busy}>Crear viaje</button>
       </form>

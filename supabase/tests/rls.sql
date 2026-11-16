@@ -1,4 +1,4 @@
--- Prueba de RLS. Correr DESPUÉS de aplicar 001_init.sql, conectado como postgres:
+-- Prueba de RLS. Correr DESPUÉS de aplicar todas las migraciones (001 a 005), conectado como postgres:
 --   psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/tests/rls.sql
 -- (o pegar entero en el SQL Editor de Supabase). Todo corre en una transacción
 -- que termina en ROLLBACK: no deja datos. Cualquier assert que falle aborta el script.
@@ -44,7 +44,7 @@ begin
   assert (select count(*) from checklist_items where trip_id = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb') = 0, 'A no ve checklist de B';
   assert (select count(*) from itinerary_items) = 1, 'A ve su itinerario';
   assert (select count(*) from catches) = 3, 'A ve sus 3 capturas';
-  assert (select count(*) from spots where name = 'spot compartido') = 1, 'spots es de lectura abierta';
+  assert (select count(*) from spots where name = 'spot compartido') = 1, 'spots se leen desde un viaje que existe';
 
   -- insert propio OK
   insert into checklist_items (trip_id, text) values ('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', 'a3');
@@ -74,7 +74,7 @@ begin
     null;
   end;
 
-  -- spots y soundings: alta abierta; sin delete
+  -- spots y soundings: alta desde un viaje que existe; sin delete
   insert into spots (name) values ('spot nuevo');
   insert into soundings (lat, lon) values (0, 0);
   begin
@@ -164,9 +164,36 @@ begin
   raise notice 'OK header malformado';
 end $$;
 
--- Crear un viaje es abierto (aunque el header no sea el suyo)
-set local request.headers = '{}';
-insert into trips (id, name) values ('cccccccc-cccc-4ccc-8ccc-cccccccccccc', 'Viaje C');
+-- ── Migración 005: sin clave ni viaje existente no se hace nada ─────────────
+-- (con la clave correcta no se prueba acá: la clave no está en el repo)
+set local request.headers = '{"x-trip-id":"cccccccc-cccc-4ccc-8ccc-cccccccccccc","x-create-key":"no-es-la-clave"}';
+do $$
+begin
+  begin
+    insert into trips (id, name) values ('cccccccc-cccc-4ccc-8ccc-cccccccccccc', 'Viaje C');
+    assert false, 'crear un viaje sin la clave debía fallar';
+  exception when insufficient_privilege then
+    null;
+  end;
+  assert public.check_create_key() = false, 'clave equivocada: check_create_key() es false';
+  -- C no existe: ni spots, ni sondeos, ni fotos, ni capturas cercanas
+  assert (select count(*) from spots) = 0, 'sin viaje existente no se leen spots';
+  assert (select count(*) from soundings) = 0, 'sin viaje existente no se leen sondeos';
+  assert (select count(*) from public.catches_near(-34.1, -58.9, 200)) = 0, 'sin viaje existente catches_near vacío';
+  begin
+    insert into spots (name) values ('intruso');
+    assert false, 'agregar un spot sin viaje existente debía fallar';
+  exception when insufficient_privilege then
+    null;
+  end;
+  begin
+    insert into storage.objects (bucket_id, name) values ('catch-photos', 'cccccccc-cccc-4ccc-8ccc-cccccccccccc/t.jpg');
+    assert false, 'subir fotos a un viaje que no existe debía fallar';
+  exception when insufficient_privilege then
+    null;
+  end;
+  raise notice 'OK migración 005';
+end $$;
 
 reset role;
 rollback;

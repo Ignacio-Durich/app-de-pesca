@@ -4,8 +4,6 @@ Web app (PWA) para que un grupo de amigos planifique y registre sus viajes de pe
 
 Funciona **sin señal**: antes de salir, "Preparar viaje" guarda en el teléfono el pronóstico, el mapa, la profundidad, la imagen satelital y los datos del grupo.
 
-**App en vivo:** https://app-de-pesca.pages.dev
-
 <p>
   <img src="docs/screenshots/pronostico.jpg" width="200" alt="Pronóstico: anzuelos al agua 06:30 hasta las 09:30, puntaje 10/10 y el motivo">
   <img src="docs/screenshots/hora-por-hora.jpg" width="200" alt="Curva de marea del día con pleamares, bajamares, ventanas en verde y puntaje por hora">
@@ -27,6 +25,7 @@ Funciona **sin señal**: antes de salir, "Preparar viaje" guarda en el teléfono
 ## Cómo está pensada
 
 - **Sin cuentas.** Crear un viaje genera un link `/t/<uuid>`; quien tiene el link entra y elige "¿Quién sos?". Las políticas RLS de Supabase solo dejan leer o editar un viaje si el pedido trae su UUID en el header `x-trip-id`. Límite asumido: cualquiera con el link puede editar.
+- **Crear viajes pide una clave.** La clave pública de Supabase viaja en la app, así que la base exige el header `x-create-key` para crear un viaje y un viaje existente para leer o escribir spots, sondeos y fotos ([migración 005](supabase/migrations/005_cerrar_escrituras.sql)). En tu propio proyecto, generá una clave y poné su sha256 en esa migración.
 - **Offline primero.** Todo se guarda primero en el teléfono (IndexedDB) y se sube con una cola cuando vuelve la señal. Los IDs los genera el cliente, así un reintento no duplica filas.
 - **Nada inventado.** Cada dato del mundo real (fuentes, horarios, reglamento, especies) tiene su fuente en la [spec](docs/superpowers/specs/2026-10-29-app-de-pesca-design.md). Los umbrales y pesos del puntaje están marcados **[diseño]**: son valores iniciales, no medidos.
 
@@ -55,6 +54,7 @@ npm test
 | `VITE_SUPABASE_URL` | URL del proyecto de Supabase |
 | `VITE_SUPABASE_ANON_KEY` | Clave pública (publishable) de Supabase |
 | `VITE_MAP_BASE_URL` | URL base donde están los `.pmtiles` de cada región. Sin ella, "Preparar viaje" saltea el mapa base con un aviso |
+| `TRIP_CREATE_KEY` | No entra en la app: es la clave para crear viajes, que se carga una vez en cada teléfono. Su sha256 va en la migración 005 |
 
 Sin Supabase la app abre igual: guarda todo en el teléfono y deja las escrituras en cola.
 
